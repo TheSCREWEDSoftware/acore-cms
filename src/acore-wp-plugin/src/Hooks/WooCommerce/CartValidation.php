@@ -31,7 +31,14 @@ class CartValidation extends \ACore\Lib\WpClass {
     public static function add_to_cart_validation($flaq, $product_id, $quantity, $variation_id = null, $variations = null) {
         $product = $variation_id ? \wc_get_product($variation_id) : \wc_get_product($product_id);
         $sku = $product->get_sku();
-        if (!isset(self::$skuList[$sku]) && strpos($sku, "itemsend") === false) {
+        $skuPrefix = null;
+        if (strpos($sku, "itemsend") === 0) {
+            $skuPrefix = "itemsend";
+        } else if (strpos($sku, "smartstone") === 0) {
+            $skuPrefix = "smartstone";
+        }
+
+        if (!isset(self::$skuList[$sku]) && $skuPrefix === null) {
             return true;
         }
 
@@ -42,7 +49,7 @@ class CartValidation extends \ACore\Lib\WpClass {
             return false;
         }
 
-        $activeSku = isset(self::$skuList[$sku]) ? $sku : "itemsend";
+        $activeSku = isset(self::$skuList[$sku]) ? $sku : $skuPrefix;
 
         $ACoreSrv = ACoreServices::I();
         $accRepo = $ACoreSrv->getAccountRepo();
