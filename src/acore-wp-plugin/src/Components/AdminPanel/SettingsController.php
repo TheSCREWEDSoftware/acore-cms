@@ -406,6 +406,42 @@ class SettingsController {
                     $this->storeConf('acore_pdump_contributor_cooldowns', []);
                 }
 
+                // Server-side validation of override cooldown arrays
+                $defSingle = max(0, (int) ($_POST['acore_pdump_cooldown_single'] ?? Opts::I()->acore_pdump_cooldown_single));
+                $defAll    = max(0, (int) ($_POST['acore_pdump_cooldown_all']    ?? Opts::I()->acore_pdump_cooldown_all));
+
+                foreach (['acore_pdump_subscription_cooldowns', 'acore_pdump_rbac_cooldowns', 'acore_pdump_contributor_cooldowns'] as $cdKey) {
+                    if (!isset($_POST[$cdKey]) || !is_array($_POST[$cdKey])) continue;
+                    $sanitized = [];
+                    foreach ($_POST[$cdKey] as $row) {
+                        if (!is_array($row)) continue;
+                        $useDefault = !empty($row['use_default']) ? 1 : 0;
+                        $single     = max(0, (int) ($row['single'] ?? 0));
+                        $all        = max(0, (int) ($row['all']    ?? 0));
+                        if (!$useDefault) {
+                            if ($defSingle > 0 && $single >= $defSingle) $single = $defSingle - 1;
+                            if ($defAll    > 0 && $all    >= $defAll)    $all    = $defAll    - 1;
+                        }
+                        $base = [
+                            'single'      => $single,
+                            'all'         => $all,
+                            'use_default' => $useDefault,
+                        ];
+                        if ($cdKey === 'acore_pdump_subscription_cooldowns') {
+                            $base['level'] = max(0, (int) ($row['level'] ?? 0));
+                            $base['name']  = sanitize_text_field($row['name'] ?? '');
+                        } elseif ($cdKey === 'acore_pdump_rbac_cooldowns') {
+                            $base['perm_id']   = max(0, (int) ($row['perm_id']   ?? 0));
+                            $base['perm_name'] = sanitize_text_field($row['perm_name'] ?? '');
+                        } elseif ($cdKey === 'acore_pdump_contributor_cooldowns') {
+                            $base['level'] = max(1, min(4, (int) ($row['level'] ?? 1)));
+                            $base['name']  = sanitize_text_field($row['name'] ?? '');
+                        }
+                        $sanitized[] = $base;
+                    }
+                    $_POST[$cdKey] = $sanitized;
+                }
+
                 foreach (Opts::I()->getConfs() as $key => $value) {
                     if (isset($_POST[$key])) {
                         if ($key == 'acore_name_unlock_allowed_banned_names_table') {
