@@ -53,6 +53,7 @@ class Opts {
     public $acore_punishment_info_account_mute="1";
     public $acore_punishment_info_character_ban="1";
     public $acore_pdump_enabled="0";
+    public $acore_pdump_log_enabled="1";
     public $acore_bug_report_url="https://github.com/azerothcore/acore-cms/issues/new";
     public $acore_pdump_cooldown_single="2592000";  // 1 month (30 days)
     public $acore_pdump_cooldown_all="7776000";     // 3 months (90 days)

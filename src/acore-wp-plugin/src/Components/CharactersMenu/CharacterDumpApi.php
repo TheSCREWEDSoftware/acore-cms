@@ -4,6 +4,7 @@ namespace ACore\Components\CharactersMenu;
 
 use ACore\Manager\ACoreServices;
 use ACore\Manager\Opts;
+use ACore\Utils\AcoreCharColors;
 
 add_action('rest_api_init', function () {
     register_rest_route(ACORE_SLUG . '/v1', 'pdump/(?P<guid>\d+)', [
@@ -17,6 +18,76 @@ add_action('rest_api_init', function () {
         'permission_callback' => '__return_true',
     ]);
 });
+
+/**
+ * Get the client IP, respecting common reverse-proxy headers.
+ */
+function pdumpGetClientIp(): string
+{
+    foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'REMOTE_ADDR'] as $key) {
+        if (!empty($_SERVER[$key])) {
+            $ip = trim(explode(',', $_SERVER[$key])[0]);
+            if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                return $ip;
+            }
+        }
+    }
+    return '';
+}
+
+/**
+ * Ensure the PDUMP export log table exists (lazy, runs once via wp_option version flag).
+ */
+function pdumpEnsureLogTable(): void
+{
+    if (get_option('acore_pdump_log_db_v') === '1') {
+        return;
+    }
+    global $wpdb;
+    $table   = $wpdb->prefix . 'acore_pdump_log';
+    $charset = $wpdb->get_charset_collate();
+    $sql     = "CREATE TABLE IF NOT EXISTS `{$table}` (
+        `id`          BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+        `user_id`     BIGINT(20) UNSIGNED NOT NULL,
+        `account_id`  INT(10) UNSIGNED    NOT NULL,
+        `type`        VARCHAR(10)         NOT NULL,
+        `ip`          VARCHAR(45)         NOT NULL DEFAULT '',
+        `exported_at` DATETIME            NOT NULL,
+        `characters`  LONGTEXT            NOT NULL,
+        PRIMARY KEY (`id`),
+        KEY `user_id`     (`user_id`),
+        KEY `exported_at` (`exported_at`)
+    ) {$charset};";
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+    update_option('acore_pdump_log_db_v', '1');
+}
+
+/**
+ * Write a PDUMP export log entry.
+ *
+ * @param int    $userId WordPress user ID
+ * @param int    $accId  AzerothCore account ID
+ * @param string $type   'single' or 'all'
+ * @param array  $chars  [['name'=>..., 'guid'=>..., 'level'=>..., 'race'=>..., 'class'=>...], ...]
+ */
+function pdumpWriteLog(int $userId, int $accId, string $type, array $chars): void
+{
+    global $wpdb;
+    pdumpEnsureLogTable();
+    $wpdb->insert(
+        $wpdb->prefix . 'acore_pdump_log',
+        [
+            'user_id'     => $userId,
+            'account_id'  => $accId,
+            'type'        => $type,
+            'ip'          => pdumpGetClientIp(),
+            'exported_at' => current_time('mysql'),
+            'characters'  => wp_json_encode($chars),
+        ],
+        ['%d', '%d', '%s', '%s', '%s', '%s']
+    );
+}
 
 /**
  * Format a number of seconds into a human-readable string like "1h 30m".
@@ -338,7 +409,7 @@ function handlePdump(\WP_REST_Request $request): void
 
     $conn = ACoreServices::I()->getCharacterEm()->getConnection();
     $row  = $conn->executeQuery(
-        "SELECT `name` FROM `characters`
+        "SELECT `name`, `level`, `race`, `class` FROM `characters`
          WHERE `guid` = ? AND `account` = ? AND `deleteDate` IS NULL
          LIMIT 1",
         [$guid, $accId]
@@ -382,6 +453,16 @@ function handlePdump(\WP_REST_Request $request): void
     }
 
     $filename = strtoupper($charName) . '_' . date('Ymd_His') . '.dump';
+
+    if (Opts::I()->acore_pdump_log_enabled == '1') {
+        pdumpWriteLog($userId, $accId, 'single', [[
+            'name'  => $charName,
+            'guid'  => $guid,
+            'level' => (int) ($row['level'] ?? 0),
+            'race'  => AcoreCharColors::getRaceName((int) ($row['race']  ?? 0)),
+            'class' => AcoreCharColors::getClassName((int) ($row['class'] ?? 0)),
+        ]]);
+    }
 
     if (ob_get_level()) {
         ob_end_clean();
@@ -467,13 +548,14 @@ function handlePdumpAll(\WP_REST_Request $request): void
 
     ob_start();
 
-    $files = [];
+    $files     = [];
+    $logChars  = [];
     foreach ($characters as $char) {
         $guid = isset($char['guid']) ? (int) $char['guid'] : 0;
         if ($guid < 1) continue;
 
         $row = $conn->executeQuery(
-            "SELECT `name` FROM `characters`
+            "SELECT `name`, `level`, `race`, `class` FROM `characters`
              WHERE `guid` = ? AND `account` = ? AND `deleteDate` IS NULL LIMIT 1",
             [$guid, $accId]
         )->fetchAssociative();
@@ -484,12 +566,21 @@ function handlePdumpAll(\WP_REST_Request $request): void
         $dump   = $writer->getDump($guid);
         if ($dump === null) continue;
 
-        $order = preg_replace('/[^0-9]/',    '', (string)($char['order']   ?? '0'));
-        $level = preg_replace('/[^0-9]/',    '', (string)($char['level']   ?? '0'));
-        $race  = preg_replace('/[^a-zA-Z]/', '', (string)($char['race']    ?? 'Unknown'));
-        $class = preg_replace('/[^a-zA-Z]/', '', (string)($char['class']   ?? 'Unknown'));
+        $order     = preg_replace('/[^0-9]/', '', (string)($char['order'] ?? '0'));
+        $charLevel = (int) $row['level'];
+        $raceName  = AcoreCharColors::getRaceName((int) $row['race']);
+        $className = AcoreCharColors::getClassName((int) $row['class']);
+        $raceSlug  = preg_replace('/[^a-zA-Z]/', '', $raceName);
+        $classSlug = preg_replace('/[^a-zA-Z]/', '', $className);
 
-        $files["{$order}_{$level}_{$race}_{$class}_{$now}.dump"] = $dump;
+        $files["{$order}_{$charLevel}_{$raceSlug}_{$classSlug}_{$now}.dump"] = $dump;
+        $logChars[] = [
+            'name'  => $row['name'],
+            'guid'  => $guid,
+            'level' => $charLevel,
+            'race'  => $raceName,
+            'class' => $className,
+        ];
     }
 
     ob_end_clean();
@@ -515,6 +606,10 @@ function handlePdumpAll(\WP_REST_Request $request): void
         $zip->addFromString($filename, $content);
     }
     $zip->close();
+
+    if (Opts::I()->acore_pdump_log_enabled == '1') {
+        pdumpWriteLog($userId, $accId, 'all', $logChars);
+    }
 
     if (ob_get_level()) ob_end_clean();
 

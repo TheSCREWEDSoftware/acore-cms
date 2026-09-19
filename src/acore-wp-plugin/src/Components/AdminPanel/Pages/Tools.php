@@ -375,6 +375,12 @@
                                                     <option value="0" <?php if (!$pdumpOn) echo 'selected'; ?>>Disabled</option>
                                                     <option value="1" <?php if ($pdumpOn)  echo 'selected'; ?>>Enabled</option>
                                                 </select>
+                                                <br>
+                                                <label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#8b949e;margin-top:6px;cursor:pointer;">
+                                                    <input type="hidden" name="acore_pdump_log_enabled" value="0">
+                                                    <input type="checkbox" name="acore_pdump_log_enabled" value="1" <?= Opts::I()->acore_pdump_log_enabled != '0' ? 'checked' : '' ?>>
+                                                    Enable Logging
+                                                </label>
                                             </td>
                                         </tr>
                                         <tr id="acore-pdump-bug-url-row" <?php if (!$pdumpOn) echo 'style="opacity:0.45;pointer-events:none;"'; ?>>
@@ -547,142 +553,163 @@
                                 <!-- acore-subscriptions -->
                                 <div class="acore-pdump-dependent" <?= $dep ?>>
                                     <hr style="margin:12px 0;">
-                                    <p style="font-weight:700;font-size:15px;margin:0 0 4px;"><a href="https://github.com/azerothcore/mod-acore-subscriptions" target="_blank">acore-subscriptions</a></p>
-                                    <p style="font-size:11px;color:#8b949e;margin:0 0 8px;">Cooldowns must be <strong>less</strong> than the default above.</p>
-                                    <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;">
-                                        <select name="acore_pdump_subscription_enabled" id="acore_pdump_subscription_enabled">
-                                            <option value="0" <?= !$subEnabled ? 'selected' : '' ?>>Disabled</option>
-                                            <option value="1" <?= $subEnabled  ? 'selected' : '' ?>>Enabled</option>
-                                        </select>
-                                        Enable subscription cooldown overrides
-                                    </label>
-                                    <div id="acore-pdump-sub-wrap" <?= !$subEnabled ? 'style="opacity:0.45;pointer-events:none;"' : '' ?>>
-                                        <input type="hidden" name="acore_pdump_subscription_cooldowns_present" value="1">
-                                        <div id="acore-pdump-sub-list">
-                                            <?php foreach ($subCooldowns as $i => $row): ?>
-                                            <div class="acore-pdump-sub-entry" style="border:1px solid #30363d;border-radius:4px;padding:10px;margin-bottom:8px;">
-                                                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-                                                    <label style="font-size:12px;font-weight:600;margin:0;">Level</label>
-                                                    <input type="number" name="acore_pdump_subscription_cooldowns[<?= $i ?>][level]" min="0" value="<?= (int)($row['level'] ?? 0) ?>" style="width:60px;text-align:center;">
-                                                    <label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>
-                                                    <input type="text" name="acore_pdump_subscription_cooldowns[<?= $i ?>][name]" value="<?= esc_attr($row['name'] ?? '') ?>" placeholder="optional" style="flex:1;min-width:80px;">
-                                                    <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#8b949e;margin-left:auto;white-space:nowrap;">
-                                                        <input type="hidden" name="acore_pdump_subscription_cooldowns[<?= $i ?>][use_default]" value="0">
-                                                        <input type="checkbox" class="acore-pdump-use-default" name="acore_pdump_subscription_cooldowns[<?= $i ?>][use_default]" value="1" <?= !empty($row['use_default']) ? 'checked' : '' ?>>
-                                                        Use Default
-                                                    </label>
-                                                    <button type="button" class="button acore-btn-danger acore-pdump-sub-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
+                                    <details>
+                                        <summary style="font-weight:700;font-size:15px;cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:6px;">
+                                            <span class="dashicons dashicons-arrow-right-alt2" style="font-size:14px;margin-top:1px;transition:transform .15s;" data-summary-icon></span>
+                                            <a href="https://github.com/azerothcore/mod-acore-subscriptions" target="_blank" onclick="event.stopPropagation()">acore-subscriptions</a>
+                                        </summary>
+                                        <div style="padding-top:8px;">
+                                            <p style="font-size:11px;color:#8b949e;margin:0 0 8px;">Cooldowns must be <strong>less</strong> than the default above.</p>
+                                            <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;">
+                                                <select name="acore_pdump_subscription_enabled" id="acore_pdump_subscription_enabled">
+                                                    <option value="0" <?= !$subEnabled ? 'selected' : '' ?>>Disabled</option>
+                                                    <option value="1" <?= $subEnabled  ? 'selected' : '' ?>>Enabled</option>
+                                                </select>
+                                                Enable subscription cooldown overrides
+                                            </label>
+                                            <div id="acore-pdump-sub-wrap" <?= !$subEnabled ? 'style="opacity:0.45;pointer-events:none;"' : '' ?>>
+                                                <input type="hidden" name="acore_pdump_subscription_cooldowns_present" value="1">
+                                                <div id="acore-pdump-sub-list">
+                                                    <?php foreach ($subCooldowns as $i => $row): ?>
+                                                    <div class="acore-pdump-sub-entry" style="border:1px solid #30363d;border-radius:4px;padding:10px;margin-bottom:8px;">
+                                                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                                                            <label style="font-size:12px;font-weight:600;margin:0;">Level</label>
+                                                            <input type="number" name="acore_pdump_subscription_cooldowns[<?= $i ?>][level]" min="0" value="<?= (int)($row['level'] ?? 0) ?>" style="width:60px;text-align:center;">
+                                                            <label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>
+                                                            <input type="text" name="acore_pdump_subscription_cooldowns[<?= $i ?>][name]" value="<?= esc_attr($row['name'] ?? '') ?>" placeholder="optional" style="flex:1;min-width:80px;">
+                                                            <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#8b949e;margin-left:auto;white-space:nowrap;">
+                                                                <input type="hidden" name="acore_pdump_subscription_cooldowns[<?= $i ?>][use_default]" value="0">
+                                                                <input type="checkbox" class="acore-pdump-use-default" name="acore_pdump_subscription_cooldowns[<?= $i ?>][use_default]" value="1" <?= !empty($row['use_default']) ? 'checked' : '' ?>>
+                                                                Use Default
+                                                            </label>
+                                                            <button type="button" class="button acore-btn-danger acore-pdump-sub-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
+                                                        </div>
+                                                        <div class="acore-pdump-col-single">
+                                                            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
+                                                            <?php echo acorePdumpCdGrid("acore_pdump_subscription_cooldowns[$i][single]", (int)($row['single'] ?? 0)); ?>
+                                                        </div>
+                                                        <div class="acore-pdump-col-all" style="margin-top:10px;">
+                                                            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Export All Cooldown</label>
+                                                            <?php echo acorePdumpCdGrid("acore_pdump_subscription_cooldowns[$i][all]", (int)($row['all'] ?? 0)); ?>
+                                                        </div>
+                                                    </div>
+                                                    <?php endforeach; ?>
                                                 </div>
-                                                <div class="acore-pdump-col-single">
-                                                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
-                                                    <?php echo acorePdumpCdGrid("acore_pdump_subscription_cooldowns[$i][single]", (int)($row['single'] ?? 0)); ?>
-                                                </div>
-                                                <div class="acore-pdump-col-all" style="margin-top:10px;">
-                                                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Export All Cooldown</label>
-                                                    <?php echo acorePdumpCdGrid("acore_pdump_subscription_cooldowns[$i][all]", (int)($row['all'] ?? 0)); ?>
+                                                <div style="display:flex;gap:6px;margin-top:4px;">
+                                                    <div id="acore-pdump-sub-add" class="button"><span class="dashicons dashicons-plus" style="margin-top:5px;"></span> Add</div>
+                                                    <div id="acore-pdump-sub-reset" class="button acore-btn-danger" title="Remove all subscription overrides"><span class="dashicons dashicons-image-rotate" style="margin-top:5px;"></span> Reset</div>
                                                 </div>
                                             </div>
-                                            <?php endforeach; ?>
                                         </div>
-                                        <div style="display:flex;gap:6px;margin-top:4px;">
-                                            <div id="acore-pdump-sub-add" class="button"><span class="dashicons dashicons-plus" style="margin-top:5px;"></span> Add</div>
-                                            <div id="acore-pdump-sub-reset" class="button acore-btn-danger" title="Remove all subscription overrides"><span class="dashicons dashicons-image-rotate" style="margin-top:5px;"></span> Reset</div>
-                                        </div>
-                                    </div>
+                                    </details>
                                 </div>
 
                                 <!-- RBAC -->
                                 <div class="acore-pdump-dependent" <?= $dep ?>>
                                     <hr style="margin:12px 0;">
-                                    <p style="font-weight:700;font-size:15px;margin:0 0 4px;">RBAC</p>
-                                    <p style="font-size:11px;color:#8b949e;margin:0 0 8px;">Cooldowns must be <strong>less</strong> than the default above.</p>
-                                    <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;">
-                                        <select name="acore_pdump_rbac_enabled" id="acore_pdump_rbac_enabled">
-                                            <option value="0" <?= !$rbacEnabled ? 'selected' : '' ?>>Disabled</option>
-                                            <option value="1" <?= $rbacEnabled  ? 'selected' : '' ?>>Enabled</option>
-                                        </select>
-                                        Enable RBAC cooldown overrides
-                                    </label>
-                                    <div id="acore-pdump-rbac-wrap" <?= !$rbacEnabled ? 'style="opacity:0.45;pointer-events:none;"' : '' ?>>
-                                        <input type="hidden" name="acore_pdump_rbac_cooldowns_present" value="1">
-                                        <div id="acore-pdump-rbac-list">
-                                            <?php foreach ($rbacCooldowns as $i => $row): ?>
-                                            <div class="acore-pdump-rbac-entry" style="border:1px solid #30363d;border-radius:4px;padding:10px;margin-bottom:8px;">
-                                                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-                                                    <label style="font-size:12px;font-weight:600;margin:0;">Permission ID</label>
-                                                    <input type="number" name="acore_pdump_rbac_cooldowns[<?= $i ?>][perm_id]" min="0" value="<?= (int)($row['perm_id'] ?? 0) ?>" style="width:60px;text-align:center;">
-                                                    <label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>
-                                                    <input type="text" name="acore_pdump_rbac_cooldowns[<?= $i ?>][perm_name]" value="<?= esc_attr($row['perm_name'] ?? '') ?>" placeholder="optional" style="flex:1;min-width:80px;">
-                                                    <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#8b949e;margin-left:auto;white-space:nowrap;">
-                                                        <input type="hidden" name="acore_pdump_rbac_cooldowns[<?= $i ?>][use_default]" value="0">
-                                                        <input type="checkbox" class="acore-pdump-use-default" name="acore_pdump_rbac_cooldowns[<?= $i ?>][use_default]" value="1" <?= !empty($row['use_default']) ? 'checked' : '' ?>>
-                                                        Use Default
-                                                    </label>
-                                                    <button type="button" class="button acore-btn-danger acore-pdump-rbac-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
+                                    <details>
+                                        <summary style="font-weight:700;font-size:15px;cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:6px;">
+                                            <span class="dashicons dashicons-arrow-right-alt2" style="font-size:14px;margin-top:1px;transition:transform .15s;" data-summary-icon></span>
+                                            RBAC
+                                        </summary>
+                                        <div style="padding-top:8px;">
+                                            <p style="font-size:11px;color:#8b949e;margin:0 0 8px;">Cooldowns must be <strong>less</strong> than the default above.</p>
+                                            <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;">
+                                                <select name="acore_pdump_rbac_enabled" id="acore_pdump_rbac_enabled">
+                                                    <option value="0" <?= !$rbacEnabled ? 'selected' : '' ?>>Disabled</option>
+                                                    <option value="1" <?= $rbacEnabled  ? 'selected' : '' ?>>Enabled</option>
+                                                </select>
+                                                Enable RBAC cooldown overrides
+                                            </label>
+                                            <div id="acore-pdump-rbac-wrap" <?= !$rbacEnabled ? 'style="opacity:0.45;pointer-events:none;"' : '' ?>>
+                                                <input type="hidden" name="acore_pdump_rbac_cooldowns_present" value="1">
+                                                <div id="acore-pdump-rbac-list">
+                                                    <?php foreach ($rbacCooldowns as $i => $row): ?>
+                                                    <div class="acore-pdump-rbac-entry" style="border:1px solid #30363d;border-radius:4px;padding:10px;margin-bottom:8px;">
+                                                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                                                            <label style="font-size:12px;font-weight:600;margin:0;">Permission ID</label>
+                                                            <input type="number" name="acore_pdump_rbac_cooldowns[<?= $i ?>][perm_id]" min="0" value="<?= (int)($row['perm_id'] ?? 0) ?>" style="width:60px;text-align:center;">
+                                                            <label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>
+                                                            <input type="text" name="acore_pdump_rbac_cooldowns[<?= $i ?>][perm_name]" value="<?= esc_attr($row['perm_name'] ?? '') ?>" placeholder="optional" style="flex:1;min-width:80px;">
+                                                            <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#8b949e;margin-left:auto;white-space:nowrap;">
+                                                                <input type="hidden" name="acore_pdump_rbac_cooldowns[<?= $i ?>][use_default]" value="0">
+                                                                <input type="checkbox" class="acore-pdump-use-default" name="acore_pdump_rbac_cooldowns[<?= $i ?>][use_default]" value="1" <?= !empty($row['use_default']) ? 'checked' : '' ?>>
+                                                                Use Default
+                                                            </label>
+                                                            <button type="button" class="button acore-btn-danger acore-pdump-rbac-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
+                                                        </div>
+                                                        <div class="acore-pdump-col-single">
+                                                            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
+                                                            <?php echo acorePdumpCdGrid("acore_pdump_rbac_cooldowns[$i][single]", (int)($row['single'] ?? 0)); ?>
+                                                        </div>
+                                                        <div class="acore-pdump-col-all" style="margin-top:10px;">
+                                                            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Export All Cooldown</label>
+                                                            <?php echo acorePdumpCdGrid("acore_pdump_rbac_cooldowns[$i][all]", (int)($row['all'] ?? 0)); ?>
+                                                        </div>
+                                                    </div>
+                                                    <?php endforeach; ?>
                                                 </div>
-                                                <div class="acore-pdump-col-single">
-                                                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
-                                                    <?php echo acorePdumpCdGrid("acore_pdump_rbac_cooldowns[$i][single]", (int)($row['single'] ?? 0)); ?>
-                                                </div>
-                                                <div class="acore-pdump-col-all" style="margin-top:10px;">
-                                                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Export All Cooldown</label>
-                                                    <?php echo acorePdumpCdGrid("acore_pdump_rbac_cooldowns[$i][all]", (int)($row['all'] ?? 0)); ?>
+                                                <div style="display:flex;gap:6px;margin-top:4px;">
+                                                    <div id="acore-pdump-rbac-add" class="button"><span class="dashicons dashicons-plus" style="margin-top:5px;"></span> Add</div>
+                                                    <div id="acore-pdump-rbac-reset" class="button acore-btn-danger" title="Remove all RBAC overrides"><span class="dashicons dashicons-image-rotate" style="margin-top:5px;"></span> Reset</div>
                                                 </div>
                                             </div>
-                                            <?php endforeach; ?>
                                         </div>
-                                        <div style="display:flex;gap:6px;margin-top:4px;">
-                                            <div id="acore-pdump-rbac-add" class="button"><span class="dashicons dashicons-plus" style="margin-top:5px;"></span> Add</div>
-                                            <div id="acore-pdump-rbac-reset" class="button acore-btn-danger" title="Remove all RBAC overrides"><span class="dashicons dashicons-image-rotate" style="margin-top:5px;"></span> Reset</div>
-                                        </div>
-                                    </div>
+                                    </details>
                                 </div>
 
                                 <!-- mod-contributors -->
                                 <div class="acore-pdump-dependent" <?= $dep ?>>
                                     <hr style="margin:12px 0;">
-                                    <p style="font-weight:700;font-size:15px;margin:0 0 4px;"><a href="https://github.com/chromiecraft/mod-contributors" target="_blank">mod-contributors</a></p>
-                                    <p style="font-size:11px;color:#8b949e;margin:0 0 8px;">Cooldowns must be <strong>less</strong> than the default above.</p>
-                                    <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;">
-                                        <select name="acore_pdump_contributor_enabled" id="acore_pdump_contributor_enabled">
-                                            <option value="0" <?= !$contribEnabled ? 'selected' : '' ?>>Disabled</option>
-                                            <option value="1" <?= $contribEnabled  ? 'selected' : '' ?>>Enabled</option>
-                                        </select>
-                                        Enable contributor cooldown overrides
-                                    </label>
-                                    <div id="acore-pdump-contrib-wrap" <?= !$contribEnabled ? 'style="opacity:0.45;pointer-events:none;"' : '' ?>>
-                                        <input type="hidden" name="acore_pdump_contributor_cooldowns_present" value="1">
-                                        <div id="acore-pdump-contrib-list">
-                                            <?php foreach ($contribCooldowns as $i => $row): ?>
-                                            <div class="acore-pdump-contrib-entry" style="border:1px solid #30363d;border-radius:4px;padding:10px;margin-bottom:8px;">
-                                                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-                                                    <label style="font-size:12px;font-weight:600;margin:0;">Level</label>
-                                                    <input type="number" name="acore_pdump_contributor_cooldowns[<?= $i ?>][level]" min="1" max="4" value="<?= max(1, min(4, (int)($row['level'] ?? 1))) ?>" style="width:50px;text-align:center;" title="1 Bronze · 2 Silver · 3 Gold · 4 Platinum">
-                                                    <label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>
-                                                    <input type="text" name="acore_pdump_contributor_cooldowns[<?= $i ?>][name]" value="<?= esc_attr($row['name'] ?? '') ?>" placeholder="optional" style="flex:1;min-width:80px;">
-                                                    <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#8b949e;margin-left:auto;white-space:nowrap;">
-                                                        <input type="hidden" name="acore_pdump_contributor_cooldowns[<?= $i ?>][use_default]" value="0">
-                                                        <input type="checkbox" class="acore-pdump-use-default" name="acore_pdump_contributor_cooldowns[<?= $i ?>][use_default]" value="1" <?= !empty($row['use_default']) ? 'checked' : '' ?>>
-                                                        Use Default
-                                                    </label>
-                                                    <button type="button" class="button acore-btn-danger acore-pdump-contrib-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
+                                    <details>
+                                        <summary style="font-weight:700;font-size:15px;cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:6px;">
+                                            <span class="dashicons dashicons-arrow-right-alt2" style="font-size:14px;margin-top:1px;transition:transform .15s;" data-summary-icon></span>
+                                            <a href="https://github.com/chromiecraft/mod-contributors" target="_blank" onclick="event.stopPropagation()">mod-contributors</a>
+                                        </summary>
+                                        <div style="padding-top:8px;">
+                                            <p style="font-size:11px;color:#8b949e;margin:0 0 8px;">Cooldowns must be <strong>less</strong> than the default above.</p>
+                                            <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;">
+                                                <select name="acore_pdump_contributor_enabled" id="acore_pdump_contributor_enabled">
+                                                    <option value="0" <?= !$contribEnabled ? 'selected' : '' ?>>Disabled</option>
+                                                    <option value="1" <?= $contribEnabled  ? 'selected' : '' ?>>Enabled</option>
+                                                </select>
+                                                Enable contributor cooldown overrides
+                                            </label>
+                                            <div id="acore-pdump-contrib-wrap" <?= !$contribEnabled ? 'style="opacity:0.45;pointer-events:none;"' : '' ?>>
+                                                <input type="hidden" name="acore_pdump_contributor_cooldowns_present" value="1">
+                                                <div id="acore-pdump-contrib-list">
+                                                    <?php foreach ($contribCooldowns as $i => $row): ?>
+                                                    <div class="acore-pdump-contrib-entry" style="border:1px solid #30363d;border-radius:4px;padding:10px;margin-bottom:8px;">
+                                                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                                                            <label style="font-size:12px;font-weight:600;margin:0;">Level</label>
+                                                            <input type="number" name="acore_pdump_contributor_cooldowns[<?= $i ?>][level]" min="1" max="4" value="<?= max(1, min(4, (int)($row['level'] ?? 1))) ?>" style="width:50px;text-align:center;" title="1 Bronze · 2 Silver · 3 Gold · 4 Platinum">
+                                                            <label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>
+                                                            <input type="text" name="acore_pdump_contributor_cooldowns[<?= $i ?>][name]" value="<?= esc_attr($row['name'] ?? '') ?>" placeholder="optional" style="flex:1;min-width:80px;">
+                                                            <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#8b949e;margin-left:auto;white-space:nowrap;">
+                                                                <input type="hidden" name="acore_pdump_contributor_cooldowns[<?= $i ?>][use_default]" value="0">
+                                                                <input type="checkbox" class="acore-pdump-use-default" name="acore_pdump_contributor_cooldowns[<?= $i ?>][use_default]" value="1" <?= !empty($row['use_default']) ? 'checked' : '' ?>>
+                                                                Use Default
+                                                            </label>
+                                                            <button type="button" class="button acore-btn-danger acore-pdump-contrib-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
+                                                        </div>
+                                                        <div class="acore-pdump-col-single">
+                                                            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
+                                                            <?php echo acorePdumpCdGrid("acore_pdump_contributor_cooldowns[$i][single]", (int)($row['single'] ?? 0)); ?>
+                                                        </div>
+                                                        <div class="acore-pdump-col-all" style="margin-top:10px;">
+                                                            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Export All Cooldown</label>
+                                                            <?php echo acorePdumpCdGrid("acore_pdump_contributor_cooldowns[$i][all]", (int)($row['all'] ?? 0)); ?>
+                                                        </div>
+                                                    </div>
+                                                    <?php endforeach; ?>
                                                 </div>
-                                                <div class="acore-pdump-col-single">
-                                                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
-                                                    <?php echo acorePdumpCdGrid("acore_pdump_contributor_cooldowns[$i][single]", (int)($row['single'] ?? 0)); ?>
-                                                </div>
-                                                <div class="acore-pdump-col-all" style="margin-top:10px;">
-                                                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Export All Cooldown</label>
-                                                    <?php echo acorePdumpCdGrid("acore_pdump_contributor_cooldowns[$i][all]", (int)($row['all'] ?? 0)); ?>
+                                                <div style="display:flex;gap:6px;margin-top:4px;">
+                                                    <div id="acore-pdump-contrib-add" class="button"><span class="dashicons dashicons-plus" style="margin-top:5px;"></span> Add</div>
+                                                    <div id="acore-pdump-contrib-reset" class="button acore-btn-danger" title="Remove all contributor overrides"><span class="dashicons dashicons-image-rotate" style="margin-top:5px;"></span> Reset</div>
                                                 </div>
                                             </div>
-                                            <?php endforeach; ?>
                                         </div>
-                                        <div style="display:flex;gap:6px;margin-top:4px;">
-                                            <div id="acore-pdump-contrib-add" class="button"><span class="dashicons dashicons-plus" style="margin-top:5px;"></span> Add</div>
-                                            <div id="acore-pdump-contrib-reset" class="button acore-btn-danger" title="Remove all contributor overrides"><span class="dashicons dashicons-image-rotate" style="margin-top:5px;"></span> Reset</div>
-                                        </div>
-                                    </div>
+                                    </details>
                                 </div>
 
                             </div>
@@ -690,6 +717,47 @@
                     </div><!-- /col3 -->
 
                 </div><!-- /row -->
+
+                <!-- PDUMP Export Log -->
+                <?php
+                global $wpdb;
+                $logTable = $wpdb->prefix . 'acore_pdump_log';
+                $logExists = $wpdb->get_var("SHOW TABLES LIKE '{$logTable}'") === $logTable;
+                $logRows   = $logExists ? $wpdb->get_results(
+                    "SELECT l.*, u.user_login FROM `{$logTable}` l
+                     LEFT JOIN `{$wpdb->users}` u ON u.ID = l.user_id
+                     ORDER BY l.exported_at DESC LIMIT 200"
+                ) : [];
+                ?>
+                <div class="card p-0" style="margin-top:16px;">
+                    <div class="card-body">
+                        <h5>PDUMP Export Log</h5>
+                        <hr>
+                        <?php if (!$logExists || empty($logRows)): ?>
+                            <p style="font-size:12px;color:#646970;margin:0;">No exports recorded yet.</p>
+                        <?php else: ?>
+                            <div style="max-height:400px;overflow-y:auto;font-size:12px;font-family:monospace;line-height:1.8;">
+                                <?php foreach ($logRows as $entry):
+                                    $chars   = json_decode($entry->characters, true) ?: [];
+                                    $when    = date('d-m-Y \a\t H:i:s', strtotime($entry->exported_at));
+                                    $user    = esc_html($entry->user_login ?: 'user#' . $entry->user_id);
+                                    $ip      = esc_html($entry->ip ?: '?');
+                                    if ($entry->type === 'single' && !empty($chars)):
+                                        $c = $chars[0];
+                                        $charStr = esc_html("{$c['name']} ({$c['guid']}) Lv{$c['level']} {$c['race']} {$c['class']}");
+                                        echo "<div><strong>{$user}</strong> at {$when} from {$ip} &mdash; exported <em>{$charStr}</em></div>";
+                                    else:
+                                        $parts = [];
+                                        foreach ($chars as $i => $c) {
+                                            $parts[] = esc_html(($i + 1) . ' - ' . $c['name'] . ' (' . $c['guid'] . ') Lv' . $c['level'] . ' ' . $c['race'] . ' ' . $c['class']);
+                                        }
+                                        echo "<div><strong>{$user}</strong> at {$when} from {$ip} &mdash; exported ALL (" . implode('), (', $parts) . ')</div>';
+                                    endif;
+                                endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
 
                 <!-- User Login History (admin lookup) -->
                 <div class="card p-0" style="margin-top:16px;">
@@ -1105,6 +1173,12 @@
     acoreApplyMinSubToggle('#acore-pdump-min-pt-enabled-cb',  '#acore-pdump-min-pt-grid');
     acoreApplyMinSubToggle('#acore-pdump-min-age-enabled-cb', '#acore-pdump-min-age-grid');
     acoreApplyMinSubToggle('#acore-pdump-min-lvl-enabled-cb', '#acore-pdump-min-lvl-grid');
+
+    /* ── Collapsible section chevron rotation ────────────────────────────── */
+    $(document).on('toggle', 'details', function() {
+        var $icon = $(this).children('summary').find('[data-summary-icon]');
+        $icon.css('transform', this.open ? 'rotate(90deg)' : '');
+    });
 
     /* Sync hidden seconds whenever Y/Mo/D/H change inside override entries */
     $('#acore-pdump-sub-list, #acore-pdump-rbac-list, #acore-pdump-contrib-list').on('input', '.acore-cd-y, .acore-cd-mo, .acore-cd-d, .acore-cd-h', function() {
