@@ -402,6 +402,9 @@ class SettingsController {
                 if (isset($_POST['acore_pdump_rbac_cooldowns_present']) && !isset($_POST['acore_pdump_rbac_cooldowns'])) {
                     $this->storeConf('acore_pdump_rbac_cooldowns', []);
                 }
+                if (isset($_POST['acore_pdump_contributor_cooldowns_present']) && !isset($_POST['acore_pdump_contributor_cooldowns'])) {
+                    $this->storeConf('acore_pdump_contributor_cooldowns', []);
+                }
 
                 foreach (Opts::I()->getConfs() as $key => $value) {
                     if (isset($_POST[$key])) {

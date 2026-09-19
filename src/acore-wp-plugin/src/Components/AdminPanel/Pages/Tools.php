@@ -322,18 +322,18 @@
                         <?php
                         /** Render the big D/H/M/S grid (same style as the default cooldown rows). */
                         function acorePdumpCdGrid(string $name, int $total, string $dis = ''): string {
-                            $d = intdiv($total, 86400);
-                            $h = intdiv($total % 86400, 3600);
-                            $m = intdiv($total % 3600, 60);
-                            $s = $total % 60;
+                            $y  = intdiv($total, 31536000);
+                            $mo = intdiv($total % 31536000, 2592000);
+                            $d  = intdiv($total % 2592000, 86400);
+                            $h  = intdiv($total % 86400, 3600);
                             $lbl = '<label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">';
                             return '<div class="acore-pdump-cd-wrap">'
                                 . '<input type="hidden" class="acore-pdump-cd-secs" name="' . esc_attr($name) . '" value="' . $total . '">'
                                 . '<div class="acore-pdump-cd-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">'
-                                . $lbl . '<input type="number" min="0" max="999" class="acore-cd-d" style="width:100%;text-align:center;" value="' . $d . '" ' . $dis . '>Days</label>'
-                                . $lbl . '<input type="number" min="0" max="23"  class="acore-cd-h" style="width:100%;text-align:center;" value="' . $h . '" ' . $dis . '>Hours</label>'
-                                . $lbl . '<input type="number" min="0" max="59"  class="acore-cd-m" style="width:100%;text-align:center;" value="' . $m . '" ' . $dis . '>Minutes</label>'
-                                . $lbl . '<input type="number" min="0" max="59"  class="acore-cd-s" style="width:100%;text-align:center;" value="' . $s . '" ' . $dis . '>Seconds</label>'
+                                . $lbl . '<input type="number" min="0" max="99"  class="acore-cd-y"  style="width:100%;text-align:center;" value="' . $y  . '" ' . $dis . '>Years</label>'
+                                . $lbl . '<input type="number" min="0" max="11"  class="acore-cd-mo" style="width:100%;text-align:center;" value="' . $mo . '" ' . $dis . '>Months</label>'
+                                . $lbl . '<input type="number" min="0" max="29"  class="acore-cd-d"  style="width:100%;text-align:center;" value="' . $d  . '" ' . $dis . '>Days</label>'
+                                . $lbl . '<input type="number" min="0" max="23"  class="acore-cd-h"  style="width:100%;text-align:center;" value="' . $h  . '" ' . $dis . '>Hours</label>'
                                 . '</div></div>';
                         }
                         ?>
@@ -351,9 +351,13 @@
                                     $subEnabled   = Opts::I()->acore_pdump_subscription_enabled == '1';
                                     $subCooldowns = Opts::I()->acore_pdump_subscription_cooldowns;
                                     if (!is_array($subCooldowns)) $subCooldowns = [];
+                                    $rbacEnabled   = Opts::I()->acore_pdump_rbac_enabled == '1';
                                     $rbacCooldowns = Opts::I()->acore_pdump_rbac_cooldowns;
                                     if (!is_array($rbacCooldowns)) $rbacCooldowns = [];
                                     $rbacSecLevel  = (int) Opts::I()->acore_pdump_rbac_default_sec_level;
+                                    $contribEnabled   = Opts::I()->acore_pdump_contributor_enabled == '1';
+                                    $contribCooldowns = Opts::I()->acore_pdump_contributor_cooldowns;
+                                    if (!is_array($contribCooldowns)) $contribCooldowns = [];
                                 ?>
                                 <table class="form-table table table-borderless" role="presentation">
                                     <tbody>
@@ -387,20 +391,20 @@
                                                 <div class="acore-cooldown-inputs" data-target="acore_pdump_cooldown_single"
                                                      style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
                                                     <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="999" class="acore-cd-d" style="width:100%;text-align:center;" value="<?= floor($cdSingle / 86400) ?>" <?= $dis ?>>
+                                                        <input type="number" min="0" max="99"  class="acore-cd-y"  style="width:100%;text-align:center;" value="<?= intdiv($cdSingle, 31536000) ?>" <?= $dis ?>>
+                                                        Years
+                                                    </label>
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="11"  class="acore-cd-mo" style="width:100%;text-align:center;" value="<?= intdiv($cdSingle % 31536000, 2592000) ?>" <?= $dis ?>>
+                                                        Months
+                                                    </label>
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="29"  class="acore-cd-d"  style="width:100%;text-align:center;" value="<?= intdiv($cdSingle % 2592000, 86400) ?>" <?= $dis ?>>
                                                         Days
                                                     </label>
                                                     <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="23"  class="acore-cd-h" style="width:100%;text-align:center;" value="<?= floor(($cdSingle % 86400) / 3600) ?>" <?= $dis ?>>
+                                                        <input type="number" min="0" max="23"  class="acore-cd-h"  style="width:100%;text-align:center;" value="<?= intdiv($cdSingle % 86400, 3600) ?>" <?= $dis ?>>
                                                         Hours
-                                                    </label>
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="59"  class="acore-cd-m" style="width:100%;text-align:center;" value="<?= floor(($cdSingle % 3600) / 60) ?>" <?= $dis ?>>
-                                                        Minutes
-                                                    </label>
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="59"  class="acore-cd-s" style="width:100%;text-align:center;" value="<?= $cdSingle % 60 ?>" <?= $dis ?>>
-                                                        Seconds
                                                     </label>
                                                 </div>
                                             </td>
@@ -412,20 +416,20 @@
                                                 <div class="acore-cooldown-inputs" data-target="acore_pdump_cooldown_all"
                                                      style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
                                                     <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="999" class="acore-cd-d" style="width:100%;text-align:center;" value="<?= floor($cdAll / 86400) ?>" <?= $dis ?>>
+                                                        <input type="number" min="0" max="99"  class="acore-cd-y"  style="width:100%;text-align:center;" value="<?= intdiv($cdAll, 31536000) ?>" <?= $dis ?>>
+                                                        Years
+                                                    </label>
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="11"  class="acore-cd-mo" style="width:100%;text-align:center;" value="<?= intdiv($cdAll % 31536000, 2592000) ?>" <?= $dis ?>>
+                                                        Months
+                                                    </label>
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="29"  class="acore-cd-d"  style="width:100%;text-align:center;" value="<?= intdiv($cdAll % 2592000, 86400) ?>" <?= $dis ?>>
                                                         Days
                                                     </label>
                                                     <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="23"  class="acore-cd-h" style="width:100%;text-align:center;" value="<?= floor(($cdAll % 86400) / 3600) ?>" <?= $dis ?>>
+                                                        <input type="number" min="0" max="23"  class="acore-cd-h"  style="width:100%;text-align:center;" value="<?= intdiv($cdAll % 86400, 3600) ?>" <?= $dis ?>>
                                                         Hours
-                                                    </label>
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="59"  class="acore-cd-m" style="width:100%;text-align:center;" value="<?= floor(($cdAll % 3600) / 60) ?>" <?= $dis ?>>
-                                                        Minutes
-                                                    </label>
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="59"  class="acore-cd-s" style="width:100%;text-align:center;" value="<?= $cdAll % 60 ?>" <?= $dis ?>>
-                                                        Seconds
                                                     </label>
                                                 </div>
                                             </td>
@@ -436,8 +440,8 @@
                                 <!-- acore-subscriptions -->
                                 <div class="acore-pdump-dependent" <?= $dep ?>>
                                     <hr style="margin:12px 0;">
-                                    <p style="font-weight:600;font-size:13px;margin:0 0 2px;">acore-subscriptions</p>
-                                    <p style="font-size:11px;color:#8b949e;margin:0 0 8px;">Requires <a href="https://github.com/azerothcore/mod-acore-subscriptions" target="_blank">mod-acore-subscriptions</a>. Cooldowns must be <strong>less</strong> than the default above.</p>
+                                    <p style="font-weight:700;font-size:15px;margin:0 0 4px;"><a href="https://github.com/azerothcore/mod-acore-subscriptions" target="_blank">acore-subscriptions</a></p>
+                                    <p style="font-size:11px;color:#8b949e;margin:0 0 8px;">Cooldowns must be <strong>less</strong> than the default above.</p>
                                     <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;">
                                         <select name="acore_pdump_subscription_enabled" id="acore_pdump_subscription_enabled">
                                             <option value="0" <?= !$subEnabled ? 'selected' : '' ?>>Disabled</option>
@@ -472,29 +476,76 @@
                                 <!-- RBAC -->
                                 <div class="acore-pdump-dependent" <?= $dep ?>>
                                     <hr style="margin:12px 0;">
-                                    <p style="font-weight:600;font-size:13px;margin:0 0 2px;">RBAC</p>
-                                    <p style="font-size:11px;color:#8b949e;margin:0 0 10px;">Override cooldowns per <code>rbac_permissions</code> ID. Cooldowns must be <strong>less</strong> than the default above.</p>
-                                    <input type="hidden" name="acore_pdump_rbac_cooldowns_present" value="1">
-                                    <div id="acore-pdump-rbac-list">
-                                        <?php foreach ($rbacCooldowns as $i => $row): ?>
-                                        <div class="acore-pdump-rbac-entry" style="border:1px solid #30363d;border-radius:4px;padding:10px;margin-bottom:8px;">
-                                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-                                                <label style="font-size:12px;font-weight:600;margin:0;">Permission ID</label>
-                                                <input type="number" name="acore_pdump_rbac_cooldowns[<?= $i ?>][perm_id]" min="0" value="<?= (int)($row['perm_id'] ?? 0) ?>" style="width:60px;text-align:center;">
-                                                <label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>
-                                                <input type="text" name="acore_pdump_rbac_cooldowns[<?= $i ?>][perm_name]" value="<?= esc_attr($row['perm_name'] ?? '') ?>" placeholder="optional" style="flex:1;min-width:80px;">
-                                                <button type="button" class="button acore-btn-danger acore-pdump-rbac-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
+                                    <p style="font-weight:700;font-size:15px;margin:0 0 4px;">RBAC</p>
+                                    <p style="font-size:11px;color:#8b949e;margin:0 0 8px;">Cooldowns must be <strong>less</strong> than the default above.</p>
+                                    <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;">
+                                        <select name="acore_pdump_rbac_enabled" id="acore_pdump_rbac_enabled">
+                                            <option value="0" <?= !$rbacEnabled ? 'selected' : '' ?>>Disabled</option>
+                                            <option value="1" <?= $rbacEnabled  ? 'selected' : '' ?>>Enabled</option>
+                                        </select>
+                                        Enable RBAC cooldown overrides
+                                    </label>
+                                    <div id="acore-pdump-rbac-wrap" <?= !$rbacEnabled ? 'style="opacity:0.45;pointer-events:none;"' : '' ?>>
+                                        <input type="hidden" name="acore_pdump_rbac_cooldowns_present" value="1">
+                                        <div id="acore-pdump-rbac-list">
+                                            <?php foreach ($rbacCooldowns as $i => $row): ?>
+                                            <div class="acore-pdump-rbac-entry" style="border:1px solid #30363d;border-radius:4px;padding:10px;margin-bottom:8px;">
+                                                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                                                    <label style="font-size:12px;font-weight:600;margin:0;">Permission ID</label>
+                                                    <input type="number" name="acore_pdump_rbac_cooldowns[<?= $i ?>][perm_id]" min="0" value="<?= (int)($row['perm_id'] ?? 0) ?>" style="width:60px;text-align:center;">
+                                                    <label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>
+                                                    <input type="text" name="acore_pdump_rbac_cooldowns[<?= $i ?>][perm_name]" value="<?= esc_attr($row['perm_name'] ?? '') ?>" placeholder="optional" style="flex:1;min-width:80px;">
+                                                    <button type="button" class="button acore-btn-danger acore-pdump-rbac-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
+                                                </div>
+                                                <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
+                                                <?php echo acorePdumpCdGrid("acore_pdump_rbac_cooldowns[$i][single]", (int)($row['single'] ?? 0)); ?>
+                                                <label style="display:block;font-size:12px;font-weight:600;margin:10px 0 4px;">Export All Cooldown</label>
+                                                <?php echo acorePdumpCdGrid("acore_pdump_rbac_cooldowns[$i][all]", (int)($row['all'] ?? 0)); ?>
                                             </div>
-                                            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
-                                            <?php echo acorePdumpCdGrid("acore_pdump_rbac_cooldowns[$i][single]", (int)($row['single'] ?? 0)); ?>
-                                            <label style="display:block;font-size:12px;font-weight:600;margin:10px 0 4px;">Export All Cooldown</label>
-                                            <?php echo acorePdumpCdGrid("acore_pdump_rbac_cooldowns[$i][all]", (int)($row['all'] ?? 0)); ?>
+                                            <?php endforeach; ?>
                                         </div>
-                                        <?php endforeach; ?>
+                                        <div style="display:flex;gap:6px;margin-top:4px;">
+                                            <div id="acore-pdump-rbac-add" class="button"><span class="dashicons dashicons-plus" style="margin-top:5px;"></span> Add</div>
+                                            <div id="acore-pdump-rbac-reset" class="button acore-btn-danger" title="Remove all RBAC overrides"><span class="dashicons dashicons-image-rotate" style="margin-top:5px;"></span> Reset</div>
+                                        </div>
                                     </div>
-                                    <div style="display:flex;gap:6px;margin-top:4px;">
-                                        <div id="acore-pdump-rbac-add" class="button"><span class="dashicons dashicons-plus" style="margin-top:5px;"></span> Add</div>
-                                        <div id="acore-pdump-rbac-reset" class="button acore-btn-danger" title="Remove all RBAC overrides"><span class="dashicons dashicons-image-rotate" style="margin-top:5px;"></span> Reset</div>
+                                </div>
+
+                                <!-- mod-contributors -->
+                                <div class="acore-pdump-dependent" <?= $dep ?>>
+                                    <hr style="margin:12px 0;">
+                                    <p style="font-weight:700;font-size:15px;margin:0 0 4px;"><a href="https://github.com/chromiecraft/mod-contributors" target="_blank">mod-contributors</a></p>
+                                    <p style="font-size:11px;color:#8b949e;margin:0 0 8px;">Cooldowns must be <strong>less</strong> than the default above.</p>
+                                    <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;">
+                                        <select name="acore_pdump_contributor_enabled" id="acore_pdump_contributor_enabled">
+                                            <option value="0" <?= !$contribEnabled ? 'selected' : '' ?>>Disabled</option>
+                                            <option value="1" <?= $contribEnabled  ? 'selected' : '' ?>>Enabled</option>
+                                        </select>
+                                        Enable contributor cooldown overrides
+                                    </label>
+                                    <div id="acore-pdump-contrib-wrap" <?= !$contribEnabled ? 'style="opacity:0.45;pointer-events:none;"' : '' ?>>
+                                        <input type="hidden" name="acore_pdump_contributor_cooldowns_present" value="1">
+                                        <div id="acore-pdump-contrib-list">
+                                            <?php foreach ($contribCooldowns as $i => $row): ?>
+                                            <div class="acore-pdump-contrib-entry" style="border:1px solid #30363d;border-radius:4px;padding:10px;margin-bottom:8px;">
+                                                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                                                    <label style="font-size:12px;font-weight:600;margin:0;">Level</label>
+                                                    <input type="number" name="acore_pdump_contributor_cooldowns[<?= $i ?>][level]" min="1" max="4" value="<?= max(1, min(4, (int)($row['level'] ?? 1))) ?>" style="width:50px;text-align:center;" title="1 Bronze · 2 Silver · 3 Gold · 4 Platinum">
+                                                    <label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>
+                                                    <input type="text" name="acore_pdump_contributor_cooldowns[<?= $i ?>][name]" value="<?= esc_attr($row['name'] ?? '') ?>" placeholder="optional" style="flex:1;min-width:80px;">
+                                                    <button type="button" class="button acore-btn-danger acore-pdump-contrib-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
+                                                </div>
+                                                <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
+                                                <?php echo acorePdumpCdGrid("acore_pdump_contributor_cooldowns[$i][single]", (int)($row['single'] ?? 0)); ?>
+                                                <label style="display:block;font-size:12px;font-weight:600;margin:10px 0 4px;">Export All Cooldown</label>
+                                                <?php echo acorePdumpCdGrid("acore_pdump_contributor_cooldowns[$i][all]", (int)($row['all'] ?? 0)); ?>
+                                            </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                        <div style="display:flex;gap:6px;margin-top:4px;">
+                                            <div id="acore-pdump-contrib-add" class="button"><span class="dashicons dashicons-plus" style="margin-top:5px;"></span> Add</div>
+                                            <div id="acore-pdump-contrib-reset" class="button acore-btn-danger" title="Remove all contributor overrides"><span class="dashicons dashicons-image-rotate" style="margin-top:5px;"></span> Reset</div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -579,21 +630,21 @@
         $('.acore-pdump-dependent input[type="number"]').prop('disabled', !on);
     });
 
-    /* Cooldown d/h/m/s inputs → hidden seconds field */
+    /* Cooldown y/mo/d/h inputs → hidden seconds field (1 year=365d, 1 month=30d) */
     function acoreCdUpdate($wrap) {
-        var d = parseInt($wrap.find('.acore-cd-d').val(), 10) || 0;
-        var h = parseInt($wrap.find('.acore-cd-h').val(), 10) || 0;
-        var m = parseInt($wrap.find('.acore-cd-m').val(), 10) || 0;
-        var s = parseInt($wrap.find('.acore-cd-s').val(), 10) || 0;
-        var total = d * 86400 + h * 3600 + m * 60 + s;
+        var y  = parseInt($wrap.find('.acore-cd-y').val(),  10) || 0;
+        var mo = parseInt($wrap.find('.acore-cd-mo').val(), 10) || 0;
+        var d  = parseInt($wrap.find('.acore-cd-d').val(),  10) || 0;
+        var h  = parseInt($wrap.find('.acore-cd-h').val(),  10) || 0;
+        var total = y * 31536000 + mo * 2592000 + d * 86400 + h * 3600;
         var target = $wrap.data('target');
         $('#' + target).val(total);
 
         var parts = [];
-        if (d) parts.push(d + 'd');
-        if (h) parts.push(h + 'h');
-        if (m) parts.push(m + 'm');
-        if (s) parts.push(s + 's');
+        if (y)  parts.push(y  + 'y');
+        if (mo) parts.push(mo + 'mo');
+        if (d)  parts.push(d  + 'd');
+        if (h)  parts.push(h  + 'h');
         var label = total > 0 ? parts.join(' ') : 'No cooldown';
         $('[data-for="' + target + '"]').text(label);
     }
@@ -612,13 +663,13 @@
     function acorePdumpDefaultSingle() { return parseInt($('#acore_pdump_cooldown_single').val(), 10) || 0; }
     function acorePdumpDefaultAll()    { return parseInt($('#acore_pdump_cooldown_all').val(),    10) || 0; }
 
-    /* Sync D/H/M/S → hidden .acore-pdump-cd-secs within a .acore-pdump-cd-wrap */
+    /* Sync Y/Mo/D/H → hidden .acore-pdump-cd-secs within a .acore-pdump-cd-wrap */
     function acorePdumpCdWrapUpdate($wrap) {
-        var d = parseInt($wrap.find('.acore-cd-d').val(), 10) || 0;
-        var h = parseInt($wrap.find('.acore-cd-h').val(), 10) || 0;
-        var m = parseInt($wrap.find('.acore-cd-m').val(), 10) || 0;
-        var s = parseInt($wrap.find('.acore-cd-s').val(), 10) || 0;
-        $wrap.find('.acore-pdump-cd-secs').val(d * 86400 + h * 3600 + m * 60 + s);
+        var y  = parseInt($wrap.find('.acore-cd-y').val(),  10) || 0;
+        var mo = parseInt($wrap.find('.acore-cd-mo').val(), 10) || 0;
+        var d  = parseInt($wrap.find('.acore-cd-d').val(),  10) || 0;
+        var h  = parseInt($wrap.find('.acore-cd-h').val(),  10) || 0;
+        $wrap.find('.acore-pdump-cd-secs').val(y * 31536000 + mo * 2592000 + d * 86400 + h * 3600);
     }
 
     /* Reindex [i] in name attributes after add/remove */
@@ -639,21 +690,21 @@
         });
     }
 
-    /* Build the big D/H/M/S grid HTML (matches the PHP acorePdumpCdGrid output) */
+    /* Build the big Y/Mo/D/H grid HTML (matches the PHP acorePdumpCdGrid output) */
     function acorePdumpMakeCdGrid(name, total) {
         total = total || 0;
-        var d = Math.floor(total / 86400);
-        var h = Math.floor((total % 86400) / 3600);
-        var m = Math.floor((total % 3600) / 60);
-        var s = total % 60;
+        var y  = Math.floor(total / 31536000);
+        var mo = Math.floor((total % 31536000) / 2592000);
+        var d  = Math.floor((total % 2592000) / 86400);
+        var h  = Math.floor((total % 86400) / 3600);
         var lbl = '<label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">';
         return '<div class="acore-pdump-cd-wrap">'
             + '<input type="hidden" class="acore-pdump-cd-secs" name="' + name + '" value="' + total + '">'
             + '<div class="acore-pdump-cd-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">'
-            + lbl + '<input type="number" class="acore-cd-d" min="0" max="999" value="' + d + '" style="width:100%;text-align:center;">Days</label>'
-            + lbl + '<input type="number" class="acore-cd-h" min="0" max="23"  value="' + h + '" style="width:100%;text-align:center;">Hours</label>'
-            + lbl + '<input type="number" class="acore-cd-m" min="0" max="59"  value="' + m + '" style="width:100%;text-align:center;">Minutes</label>'
-            + lbl + '<input type="number" class="acore-cd-s" min="0" max="59"  value="' + s + '" style="width:100%;text-align:center;">Seconds</label>'
+            + lbl + '<input type="number" class="acore-cd-y"  min="0" max="99"  value="' + y  + '" style="width:100%;text-align:center;">Years</label>'
+            + lbl + '<input type="number" class="acore-cd-mo" min="0" max="11"  value="' + mo + '" style="width:100%;text-align:center;">Months</label>'
+            + lbl + '<input type="number" class="acore-cd-d"  min="0" max="29"  value="' + d  + '" style="width:100%;text-align:center;">Days</label>'
+            + lbl + '<input type="number" class="acore-cd-h"  min="0" max="23"  value="' + h  + '" style="width:100%;text-align:center;">Hours</label>'
             + '</div></div>';
     }
 
@@ -672,14 +723,17 @@
             + '</div>';
     }
 
-    /* Build a full RBAC entry block */
-    function acorePdumpMakeRbacEntry(i) {
+    /* Build a full RBAC entry block (data: {perm_id, perm_name} optional) */
+    function acorePdumpMakeRbacEntry(i, data) {
+        data = data || {};
+        var permId   = data.perm_id   !== undefined ? data.perm_id   : 0;
+        var permName = data.perm_name !== undefined ? data.perm_name : '';
         return '<div class="acore-pdump-rbac-entry" style="border:1px solid #30363d;border-radius:4px;padding:10px;margin-bottom:8px;">'
             + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">'
             + '<label style="font-size:12px;font-weight:600;margin:0;">Permission ID</label>'
-            + '<input type="number" name="acore_pdump_rbac_cooldowns[' + i + '][perm_id]" min="0" value="0" style="width:60px;text-align:center;">'
+            + '<input type="number" name="acore_pdump_rbac_cooldowns[' + i + '][perm_id]" min="0" value="' + permId + '" style="width:60px;text-align:center;">'
             + '<label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>'
-            + '<input type="text" name="acore_pdump_rbac_cooldowns[' + i + '][perm_name]" value="" placeholder="optional" style="flex:1;min-width:80px;">'
+            + '<input type="text" name="acore_pdump_rbac_cooldowns[' + i + '][perm_name]" value="' + permName.replace(/"/g, '&quot;') + '" placeholder="optional" style="flex:1;min-width:80px;">'
             + '<button type="button" class="button acore-btn-danger acore-pdump-rbac-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>'
             + '</div>'
             + '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>'
@@ -712,18 +766,87 @@
         acorePdumpRbacReindex();
     });
     $('#acore-pdump-rbac-reset').on('click', function() {
-        if (!confirm('Remove all RBAC cooldown overrides?')) return;
+        if (!confirm('Reset RBAC overrides to defaults?')) return;
+        var rbacDefaults = [
+            { perm_id: 195, perm_name: 'Player' },
+            { perm_id: 194, perm_name: 'Moderator' },
+            { perm_id: 193, perm_name: 'Gamemaster' },
+            { perm_id: 192, perm_name: 'Administrator' },
+        ];
         $('#acore-pdump-rbac-list').empty();
+        $.each(rbacDefaults, function(i, d) {
+            $('#acore-pdump-rbac-list').append(acorePdumpMakeRbacEntry(i, d));
+        });
     });
 
-    /* Toggle subscription wrap */
+    /* ── mod-contributors ─────────────────────────────────────────── */
+    function acorePdumpContribReindex() {
+        $('#acore-pdump-contrib-list .acore-pdump-contrib-entry').each(function(i) {
+            $(this).find('input').each(function() {
+                var n = $(this).attr('name');
+                if (n) $(this).attr('name', n.replace(/\[\d+\]/, '[' + i + ']'));
+            });
+        });
+    }
+
+    /* Build a full contributor entry block (data: {level, name} optional) */
+    function acorePdumpMakeContribEntry(i, data) {
+        data = data || {};
+        var level = data.level !== undefined ? data.level : 1;
+        var name  = data.name  !== undefined ? data.name  : '';
+        return '<div class="acore-pdump-contrib-entry" style="border:1px solid #30363d;border-radius:4px;padding:10px;margin-bottom:8px;">'
+            + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">'
+            + '<label style="font-size:12px;font-weight:600;margin:0;">Level</label>'
+            + '<input type="number" name="acore_pdump_contributor_cooldowns[' + i + '][level]" min="1" max="4" value="' + level + '" style="width:50px;text-align:center;" title="1 Bronze · 2 Silver · 3 Gold · 4 Platinum">'
+            + '<label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>'
+            + '<input type="text" name="acore_pdump_contributor_cooldowns[' + i + '][name]" value="' + name.replace(/"/g, '&quot;') + '" placeholder="optional" style="flex:1;min-width:80px;">'
+            + '<button type="button" class="button acore-btn-danger acore-pdump-contrib-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>'
+            + '</div>'
+            + '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>'
+            + acorePdumpMakeCdGrid('acore_pdump_contributor_cooldowns[' + i + '][single]', 0)
+            + '<label style="display:block;font-size:12px;font-weight:600;margin:10px 0 4px;">Export All Cooldown</label>'
+            + acorePdumpMakeCdGrid('acore_pdump_contributor_cooldowns[' + i + '][all]', 0)
+            + '</div>';
+    }
+
+    $('#acore-pdump-contrib-add').on('click', function() {
+        var i = $('#acore-pdump-contrib-list .acore-pdump-contrib-entry').length;
+        $('#acore-pdump-contrib-list').append(acorePdumpMakeContribEntry(i));
+    });
+    $('#acore-pdump-contrib-list').on('click', '.acore-pdump-contrib-remove', function() {
+        $(this).closest('.acore-pdump-contrib-entry').remove();
+        acorePdumpContribReindex();
+    });
+    $('#acore-pdump-contrib-reset').on('click', function() {
+        if (!confirm('Reset contributor overrides to defaults?')) return;
+        var contribDefaults = [
+            { level: 1, name: 'Bronze' },
+            { level: 2, name: 'Silver' },
+            { level: 3, name: 'Gold' },
+            { level: 4, name: 'Platinum' },
+        ];
+        $('#acore-pdump-contrib-list').empty();
+        $.each(contribDefaults, function(i, d) {
+            $('#acore-pdump-contrib-list').append(acorePdumpMakeContribEntry(i, d));
+        });
+    });
+
+    /* Toggle subscription / RBAC / contributor wraps */
     $('#acore_pdump_subscription_enabled').on('change', function() {
         var on = $(this).val() === '1';
         $('#acore-pdump-sub-wrap').css({ opacity: on ? '' : '0.45', 'pointer-events': on ? '' : 'none' });
     });
+    $('#acore_pdump_rbac_enabled').on('change', function() {
+        var on = $(this).val() === '1';
+        $('#acore-pdump-rbac-wrap').css({ opacity: on ? '' : '0.45', 'pointer-events': on ? '' : 'none' });
+    });
+    $('#acore_pdump_contributor_enabled').on('change', function() {
+        var on = $(this).val() === '1';
+        $('#acore-pdump-contrib-wrap').css({ opacity: on ? '' : '0.45', 'pointer-events': on ? '' : 'none' });
+    });
 
-    /* Sync hidden seconds whenever D/H/M/S change inside override entries */
-    $('#acore-pdump-sub-list, #acore-pdump-rbac-list').on('input', '.acore-cd-d, .acore-cd-h, .acore-cd-m, .acore-cd-s', function() {
+    /* Sync hidden seconds whenever Y/Mo/D/H change inside override entries */
+    $('#acore-pdump-sub-list, #acore-pdump-rbac-list, #acore-pdump-contrib-list').on('input', '.acore-cd-y, .acore-cd-mo, .acore-cd-d, .acore-cd-h', function() {
         acorePdumpCdWrapUpdate($(this).closest('.acore-pdump-cd-wrap'));
     });
 
@@ -750,6 +873,14 @@
             var all    = parseInt($secs.eq(1).val(), 10) || 0;
             if (defSingle > 0 && single >= defSingle) errors.push('RBAC entry ' + (i+1) + ': Single Dump must be less than the default (' + defSingle + 's).');
             if (defAll    > 0 && all    >= defAll)    errors.push('RBAC entry ' + (i+1) + ': Export All must be less than the default ('    + defAll    + 's).');
+        });
+
+        $('#acore-pdump-contrib-list .acore-pdump-contrib-entry').each(function(i) {
+            var $secs  = $(this).find('.acore-pdump-cd-secs');
+            var single = parseInt($secs.eq(0).val(), 10) || 0;
+            var all    = parseInt($secs.eq(1).val(), 10) || 0;
+            if (defSingle > 0 && single >= defSingle) errors.push('Contributor entry ' + (i+1) + ': Single Dump must be less than the default (' + defSingle + 's).');
+            if (defAll    > 0 && all    >= defAll)    errors.push('Contributor entry ' + (i+1) + ': Export All must be less than the default ('    + defAll    + 's).');
         });
 
         if (errors.length) {

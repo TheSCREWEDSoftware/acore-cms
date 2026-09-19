@@ -54,12 +54,25 @@ class Opts {
     public $acore_punishment_info_character_ban="1";
     public $acore_pdump_enabled="0";
     public $acore_bug_report_url="https://github.com/azerothcore/acore-cms/issues/new";
-    public $acore_pdump_cooldown_single="0";
-    public $acore_pdump_cooldown_all="0";
+    public $acore_pdump_cooldown_single="2592000";  // 1 month (30 days)
+    public $acore_pdump_cooldown_all="7776000";     // 3 months (90 days)
     public $acore_pdump_subscription_enabled="0";
     public $acore_pdump_subscription_cooldowns=[];
+    public $acore_pdump_rbac_enabled="0";
     public $acore_pdump_rbac_default_sec_level="0";
-    public $acore_pdump_rbac_cooldowns=[];
+    public $acore_pdump_rbac_cooldowns=[
+        ['perm_id' => 195, 'perm_name' => 'Player',        'single' => 0, 'all' => 0],
+        ['perm_id' => 194, 'perm_name' => 'Moderator',     'single' => 0, 'all' => 0],
+        ['perm_id' => 193, 'perm_name' => 'Gamemaster',    'single' => 0, 'all' => 0],
+        ['perm_id' => 192, 'perm_name' => 'Administrator', 'single' => 0, 'all' => 0],
+    ];
+    public $acore_pdump_contributor_enabled="0";
+    public $acore_pdump_contributor_cooldowns=[
+        ['level' => 1, 'name' => 'Bronze',   'single' => 0, 'all' => 0],
+        ['level' => 2, 'name' => 'Silver',   'single' => 0, 'all' => 0],
+        ['level' => 3, 'name' => 'Gold',     'single' => 0, 'all' => 0],
+        ['level' => 4, 'name' => 'Platinum', 'single' => 0, 'all' => 0],
+    ];
     public $acore_security_logging="0";
     public $acore_allow_old_passwords="0";
     public $acore_geoip_lookup="0";
