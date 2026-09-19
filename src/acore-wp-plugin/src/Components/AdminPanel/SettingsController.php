@@ -396,6 +396,12 @@ class SettingsController {
                 if (isset($_POST['acore_name_unlock_thresholds_present']) && !isset($_POST['acore_name_unlock_thresholds'])) {
                     $this->storeConf('acore_name_unlock_thresholds', []);
                 }
+                if (isset($_POST['acore_pdump_subscription_cooldowns_present']) && !isset($_POST['acore_pdump_subscription_cooldowns'])) {
+                    $this->storeConf('acore_pdump_subscription_cooldowns', []);
+                }
+                if (isset($_POST['acore_pdump_rbac_cooldowns_present']) && !isset($_POST['acore_pdump_rbac_cooldowns'])) {
+                    $this->storeConf('acore_pdump_rbac_cooldowns', []);
+                }
 
                 foreach (Opts::I()->getConfs() as $key => $value) {
                     if (isset($_POST[$key])) {

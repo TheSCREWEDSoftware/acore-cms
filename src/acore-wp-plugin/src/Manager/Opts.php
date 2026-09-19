@@ -56,6 +56,10 @@ class Opts {
     public $acore_bug_report_url="https://github.com/azerothcore/acore-cms/issues/new";
     public $acore_pdump_cooldown_single="0";
     public $acore_pdump_cooldown_all="0";
+    public $acore_pdump_subscription_enabled="0";
+    public $acore_pdump_subscription_cooldowns=[];
+    public $acore_pdump_rbac_default_sec_level="0";
+    public $acore_pdump_rbac_cooldowns=[];
     public $acore_security_logging="0";
     public $acore_allow_old_passwords="0";
     public $acore_geoip_lookup="0";

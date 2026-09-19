@@ -319,46 +319,71 @@
                             </div>
                         </div>
 
+                        <?php
+                        /** Render the big D/H/M/S grid (same style as the default cooldown rows). */
+                        function acorePdumpCdGrid(string $name, int $total, string $dis = ''): string {
+                            $d = intdiv($total, 86400);
+                            $h = intdiv($total % 86400, 3600);
+                            $m = intdiv($total % 3600, 60);
+                            $s = $total % 60;
+                            $lbl = '<label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">';
+                            return '<div class="acore-pdump-cd-wrap">'
+                                . '<input type="hidden" class="acore-pdump-cd-secs" name="' . esc_attr($name) . '" value="' . $total . '">'
+                                . '<div class="acore-pdump-cd-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">'
+                                . $lbl . '<input type="number" min="0" max="999" class="acore-cd-d" style="width:100%;text-align:center;" value="' . $d . '" ' . $dis . '>Days</label>'
+                                . $lbl . '<input type="number" min="0" max="23"  class="acore-cd-h" style="width:100%;text-align:center;" value="' . $h . '" ' . $dis . '>Hours</label>'
+                                . $lbl . '<input type="number" min="0" max="59"  class="acore-cd-m" style="width:100%;text-align:center;" value="' . $m . '" ' . $dis . '>Minutes</label>'
+                                . $lbl . '<input type="number" min="0" max="59"  class="acore-cd-s" style="width:100%;text-align:center;" value="' . $s . '" ' . $dis . '>Seconds</label>'
+                                . '</div></div>';
+                        }
+                        ?>
                         <!-- PDUMP Settings -->
                         <div class="card p-0" style="margin-top:16px;">
                             <div class="card-body">
                                 <h5>PDUMP Settings</h5>
                                 <hr>
+                                <?php
+                                    $cdSingle     = max(0, (int) Opts::I()->acore_pdump_cooldown_single);
+                                    $cdAll        = max(0, (int) Opts::I()->acore_pdump_cooldown_all);
+                                    $pdumpOn      = Opts::I()->acore_pdump_enabled == '1';
+                                    $dis          = $pdumpOn ? '' : 'disabled';
+                                    $dep          = $pdumpOn ? '' : 'style="opacity:0.45;pointer-events:none;"';
+                                    $subEnabled   = Opts::I()->acore_pdump_subscription_enabled == '1';
+                                    $subCooldowns = Opts::I()->acore_pdump_subscription_cooldowns;
+                                    if (!is_array($subCooldowns)) $subCooldowns = [];
+                                    $rbacCooldowns = Opts::I()->acore_pdump_rbac_cooldowns;
+                                    if (!is_array($rbacCooldowns)) $rbacCooldowns = [];
+                                    $rbacSecLevel  = (int) Opts::I()->acore_pdump_rbac_default_sec_level;
+                                ?>
                                 <table class="form-table table table-borderless" role="presentation">
                                     <tbody>
                                         <tr>
                                             <th><label class="acore-help-label" title="Allows players to export their characters individually or all at once as a PDUMP file, importable into any AzerothCore server. Custom content (Transmog, Physical Costumes) is NOT included. The following information is automatically anonymised before download: character name, position and hearthstone (reset to faction capital), gold, timestamps, online status, achievement dates, mail contents and sender, item creator/gifter GUIDs, aura caster GUIDs, equipment set names, custom chat channels, and all character and account IDs (replaced with random values).">Enable PDump</label></th>
                                             <td>
                                                 <select name="acore_pdump_enabled" id="acore_pdump_enabled">
-                                                    <option value="0" <?php if (Opts::I()->acore_pdump_enabled != '1') echo 'selected'; ?>>Disabled</option>
-                                                    <option value="1" <?php if (Opts::I()->acore_pdump_enabled == '1') echo 'selected'; ?>>Enabled</option>
+                                                    <option value="0" <?php if (!$pdumpOn) echo 'selected'; ?>>Disabled</option>
+                                                    <option value="1" <?php if ($pdumpOn)  echo 'selected'; ?>>Enabled</option>
                                                 </select>
                                             </td>
                                         </tr>
-                                        <tr id="acore-pdump-bug-url-row" <?php if (Opts::I()->acore_pdump_enabled != '1') echo 'style="opacity:0.45;pointer-events:none;"'; ?>>
+                                        <tr id="acore-pdump-bug-url-row" <?php if (!$pdumpOn) echo 'style="opacity:0.45;pointer-events:none;"'; ?>>
                                             <th><label class="acore-help-label" title="GitHub Issues URL where players are directed to report bugs when a PDUMP export fails. Requires PDUMP to be enabled.">PDUMP Bug Report URL</label></th>
                                             <td>
                                                 <input type="url" name="acore_bug_report_url" id="acore_bug_report_url"
                                                     value="<?= esc_attr(Opts::I()->acore_bug_report_url) ?>"
                                                     placeholder="https://github.com/your-org/your-repo/issues/new"
                                                     style="width:100%;max-width:480px;"
-                                                    <?php if (Opts::I()->acore_pdump_enabled != '1') echo 'disabled'; ?>>
+                                                    <?= $dis ?>>
                                             </td>
                                         </tr>
-                                        <?php
-                                            $cdSingle = max(0, (int) Opts::I()->acore_pdump_cooldown_single);
-                                            $cdAll    = max(0, (int) Opts::I()->acore_pdump_cooldown_all);
-                                            $pdumpOn  = Opts::I()->acore_pdump_enabled == '1';
-                                            $dis      = $pdumpOn ? '' : 'disabled';
-                                            $dep      = $pdumpOn ? '' : 'style="opacity:0.45;pointer-events:none;"';
-                                        ?>
+                                        <tr class="acore-pdump-dependent" <?= $dep ?>>
+                                            <th><label class="acore-help-label" title="The secId from rbac_default_permissions representing a normal player (typically 0). This is the baseline used by both the default cooldowns and the RBAC overrides below.">Player Security Level <code>secId</code></label></th>
+                                            <td><input type="number" name="acore_pdump_rbac_default_sec_level" id="acore_pdump_rbac_default_sec_level" min="0" value="<?= esc_attr($rbacSecLevel) ?>" style="width:70px;text-align:center;" <?= $dis ?>></td>
+                                        </tr>
                                         <tr class="acore-pdump-dependent" <?= $dep ?>>
                                             <td colspan="2">
                                                 <input type="hidden" name="acore_pdump_cooldown_single" id="acore_pdump_cooldown_single" value="<?= esc_attr($cdSingle) ?>">
-                                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                                                    <label class="acore-help-label" title="How long a player must wait between single character exports. Set all to 0 for no cooldown." style="margin:0;font-weight:600;">Single Dump Cooldown</label>
-                                                    <span class="acore-cd-summary" data-for="acore_pdump_cooldown_single" style="font-size:11px;color:#8b949e;"></span>
-                                                </div>
+                                                <label class="acore-help-label" title="How long a player must wait between single character exports. Set all to 0 for no cooldown." style="display:block;font-weight:600;margin-bottom:6px;">Single Dump Cooldown <span style="font-weight:400;color:#8b949e;">(Everyone / Default)</span></label>
                                                 <div class="acore-cooldown-inputs" data-target="acore_pdump_cooldown_single"
                                                      style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
                                                     <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
@@ -383,10 +408,7 @@
                                         <tr class="acore-pdump-dependent" <?= $dep ?>>
                                             <td colspan="2">
                                                 <input type="hidden" name="acore_pdump_cooldown_all" id="acore_pdump_cooldown_all" value="<?= esc_attr($cdAll) ?>">
-                                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                                                    <label class="acore-help-label" title="How long a player must wait between Export All (zip) downloads. Set all to 0 for no cooldown." style="margin:0;font-weight:600;">Export All Cooldown</label>
-                                                    <span class="acore-cd-summary" data-for="acore_pdump_cooldown_all" style="font-size:11px;color:#8b949e;"></span>
-                                                </div>
+                                                <label class="acore-help-label" title="How long a player must wait between Export All (zip) downloads. Set all to 0 for no cooldown." style="display:block;font-weight:600;margin-bottom:6px;">Export All Cooldown <span style="font-weight:400;color:#8b949e;">(Everyone / Default)</span></label>
                                                 <div class="acore-cooldown-inputs" data-target="acore_pdump_cooldown_all"
                                                      style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
                                                     <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
@@ -410,6 +432,72 @@
                                         </tr>
                                     </tbody>
                                 </table>
+
+                                <!-- acore-subscriptions -->
+                                <div class="acore-pdump-dependent" <?= $dep ?>>
+                                    <hr style="margin:12px 0;">
+                                    <p style="font-weight:600;font-size:13px;margin:0 0 2px;">acore-subscriptions</p>
+                                    <p style="font-size:11px;color:#8b949e;margin:0 0 8px;">Requires <a href="https://github.com/azerothcore/mod-acore-subscriptions" target="_blank">mod-acore-subscriptions</a>. Cooldowns must be <strong>less</strong> than the default above.</p>
+                                    <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;">
+                                        <select name="acore_pdump_subscription_enabled" id="acore_pdump_subscription_enabled">
+                                            <option value="0" <?= !$subEnabled ? 'selected' : '' ?>>Disabled</option>
+                                            <option value="1" <?= $subEnabled  ? 'selected' : '' ?>>Enabled</option>
+                                        </select>
+                                        Enable subscription cooldown overrides
+                                    </label>
+                                    <div id="acore-pdump-sub-wrap" <?= !$subEnabled ? 'style="opacity:0.45;pointer-events:none;"' : '' ?>>
+                                        <input type="hidden" name="acore_pdump_subscription_cooldowns_present" value="1">
+                                        <div id="acore-pdump-sub-list">
+                                            <?php foreach ($subCooldowns as $i => $row): ?>
+                                            <div class="acore-pdump-sub-entry" style="border:1px solid #30363d;border-radius:4px;padding:10px;margin-bottom:8px;">
+                                                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                                                    <label style="font-size:12px;font-weight:600;margin:0;">Membership Level</label>
+                                                    <input type="number" name="acore_pdump_subscription_cooldowns[<?= $i ?>][level]" min="0" value="<?= (int)($row['level'] ?? 0) ?>" style="width:60px;text-align:center;">
+                                                    <button type="button" class="button acore-btn-danger acore-pdump-sub-remove" style="margin-left:auto;padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
+                                                </div>
+                                                <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
+                                                <?php echo acorePdumpCdGrid("acore_pdump_subscription_cooldowns[$i][single]", (int)($row['single'] ?? 0)); ?>
+                                                <label style="display:block;font-size:12px;font-weight:600;margin:10px 0 4px;">Export All Cooldown</label>
+                                                <?php echo acorePdumpCdGrid("acore_pdump_subscription_cooldowns[$i][all]", (int)($row['all'] ?? 0)); ?>
+                                            </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                        <div style="display:flex;gap:6px;margin-top:4px;">
+                                            <div id="acore-pdump-sub-add" class="button"><span class="dashicons dashicons-plus" style="margin-top:5px;"></span> Add</div>
+                                            <div id="acore-pdump-sub-reset" class="button acore-btn-danger" title="Remove all subscription overrides"><span class="dashicons dashicons-image-rotate" style="margin-top:5px;"></span> Reset</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- RBAC -->
+                                <div class="acore-pdump-dependent" <?= $dep ?>>
+                                    <hr style="margin:12px 0;">
+                                    <p style="font-weight:600;font-size:13px;margin:0 0 2px;">RBAC</p>
+                                    <p style="font-size:11px;color:#8b949e;margin:0 0 10px;">Override cooldowns per <code>rbac_permissions</code> ID. Cooldowns must be <strong>less</strong> than the default above.</p>
+                                    <input type="hidden" name="acore_pdump_rbac_cooldowns_present" value="1">
+                                    <div id="acore-pdump-rbac-list">
+                                        <?php foreach ($rbacCooldowns as $i => $row): ?>
+                                        <div class="acore-pdump-rbac-entry" style="border:1px solid #30363d;border-radius:4px;padding:10px;margin-bottom:8px;">
+                                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                                                <label style="font-size:12px;font-weight:600;margin:0;">Permission ID</label>
+                                                <input type="number" name="acore_pdump_rbac_cooldowns[<?= $i ?>][perm_id]" min="0" value="<?= (int)($row['perm_id'] ?? 0) ?>" style="width:60px;text-align:center;">
+                                                <label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>
+                                                <input type="text" name="acore_pdump_rbac_cooldowns[<?= $i ?>][perm_name]" value="<?= esc_attr($row['perm_name'] ?? '') ?>" placeholder="optional" style="flex:1;min-width:80px;">
+                                                <button type="button" class="button acore-btn-danger acore-pdump-rbac-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
+                                            </div>
+                                            <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
+                                            <?php echo acorePdumpCdGrid("acore_pdump_rbac_cooldowns[$i][single]", (int)($row['single'] ?? 0)); ?>
+                                            <label style="display:block;font-size:12px;font-weight:600;margin:10px 0 4px;">Export All Cooldown</label>
+                                            <?php echo acorePdumpCdGrid("acore_pdump_rbac_cooldowns[$i][all]", (int)($row['all'] ?? 0)); ?>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <div style="display:flex;gap:6px;margin-top:4px;">
+                                        <div id="acore-pdump-rbac-add" class="button"><span class="dashicons dashicons-plus" style="margin-top:5px;"></span> Add</div>
+                                        <div id="acore-pdump-rbac-reset" class="button acore-btn-danger" title="Remove all RBAC overrides"><span class="dashicons dashicons-image-rotate" style="margin-top:5px;"></span> Reset</div>
+                                    </div>
+                                </div>
+
                             </div>
                         </div><!-- /PDUMP Settings -->
                     </div><!-- /col3 -->
@@ -491,7 +579,7 @@
         $('.acore-pdump-dependent input[type="number"]').prop('disabled', !on);
     });
 
-    /* Cooldown d/h/m/s inputs → hidden seconds field + TH preview */
+    /* Cooldown d/h/m/s inputs → hidden seconds field */
     function acoreCdUpdate($wrap) {
         var d = parseInt($wrap.find('.acore-cd-d').val(), 10) || 0;
         var h = parseInt($wrap.find('.acore-cd-h').val(), 10) || 0;
@@ -515,6 +603,159 @@
         $(this).on('input', 'input[type="number"]', function() {
             acoreCdUpdate($(this).closest('.acore-cooldown-inputs'));
         });
+    });
+
+    /* ── Subscription / RBAC override cooldowns ──────────────────────────
+       Cooldowns in override entries must be STRICTLY LESS than the default.
+    */
+
+    function acorePdumpDefaultSingle() { return parseInt($('#acore_pdump_cooldown_single').val(), 10) || 0; }
+    function acorePdumpDefaultAll()    { return parseInt($('#acore_pdump_cooldown_all').val(),    10) || 0; }
+
+    /* Sync D/H/M/S → hidden .acore-pdump-cd-secs within a .acore-pdump-cd-wrap */
+    function acorePdumpCdWrapUpdate($wrap) {
+        var d = parseInt($wrap.find('.acore-cd-d').val(), 10) || 0;
+        var h = parseInt($wrap.find('.acore-cd-h').val(), 10) || 0;
+        var m = parseInt($wrap.find('.acore-cd-m').val(), 10) || 0;
+        var s = parseInt($wrap.find('.acore-cd-s').val(), 10) || 0;
+        $wrap.find('.acore-pdump-cd-secs').val(d * 86400 + h * 3600 + m * 60 + s);
+    }
+
+    /* Reindex [i] in name attributes after add/remove */
+    function acorePdumpSubReindex() {
+        $('#acore-pdump-sub-list .acore-pdump-sub-entry').each(function(i) {
+            $(this).find('input').each(function() {
+                var n = $(this).attr('name');
+                if (n) $(this).attr('name', n.replace(/\[\d+\]/, '[' + i + ']'));
+            });
+        });
+    }
+    function acorePdumpRbacReindex() {
+        $('#acore-pdump-rbac-list .acore-pdump-rbac-entry').each(function(i) {
+            $(this).find('input').each(function() {
+                var n = $(this).attr('name');
+                if (n) $(this).attr('name', n.replace(/\[\d+\]/, '[' + i + ']'));
+            });
+        });
+    }
+
+    /* Build the big D/H/M/S grid HTML (matches the PHP acorePdumpCdGrid output) */
+    function acorePdumpMakeCdGrid(name, total) {
+        total = total || 0;
+        var d = Math.floor(total / 86400);
+        var h = Math.floor((total % 86400) / 3600);
+        var m = Math.floor((total % 3600) / 60);
+        var s = total % 60;
+        var lbl = '<label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">';
+        return '<div class="acore-pdump-cd-wrap">'
+            + '<input type="hidden" class="acore-pdump-cd-secs" name="' + name + '" value="' + total + '">'
+            + '<div class="acore-pdump-cd-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">'
+            + lbl + '<input type="number" class="acore-cd-d" min="0" max="999" value="' + d + '" style="width:100%;text-align:center;">Days</label>'
+            + lbl + '<input type="number" class="acore-cd-h" min="0" max="23"  value="' + h + '" style="width:100%;text-align:center;">Hours</label>'
+            + lbl + '<input type="number" class="acore-cd-m" min="0" max="59"  value="' + m + '" style="width:100%;text-align:center;">Minutes</label>'
+            + lbl + '<input type="number" class="acore-cd-s" min="0" max="59"  value="' + s + '" style="width:100%;text-align:center;">Seconds</label>'
+            + '</div></div>';
+    }
+
+    /* Build a full subscription entry block */
+    function acorePdumpMakeSubEntry(i) {
+        return '<div class="acore-pdump-sub-entry" style="border:1px solid #30363d;border-radius:4px;padding:10px;margin-bottom:8px;">'
+            + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
+            + '<label style="font-size:12px;font-weight:600;margin:0;">Membership Level</label>'
+            + '<input type="number" name="acore_pdump_subscription_cooldowns[' + i + '][level]" min="0" value="0" style="width:60px;text-align:center;">'
+            + '<button type="button" class="button acore-btn-danger acore-pdump-sub-remove" style="margin-left:auto;padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>'
+            + '</div>'
+            + '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>'
+            + acorePdumpMakeCdGrid('acore_pdump_subscription_cooldowns[' + i + '][single]', 0)
+            + '<label style="display:block;font-size:12px;font-weight:600;margin:10px 0 4px;">Export All Cooldown</label>'
+            + acorePdumpMakeCdGrid('acore_pdump_subscription_cooldowns[' + i + '][all]', 0)
+            + '</div>';
+    }
+
+    /* Build a full RBAC entry block */
+    function acorePdumpMakeRbacEntry(i) {
+        return '<div class="acore-pdump-rbac-entry" style="border:1px solid #30363d;border-radius:4px;padding:10px;margin-bottom:8px;">'
+            + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">'
+            + '<label style="font-size:12px;font-weight:600;margin:0;">Permission ID</label>'
+            + '<input type="number" name="acore_pdump_rbac_cooldowns[' + i + '][perm_id]" min="0" value="0" style="width:60px;text-align:center;">'
+            + '<label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>'
+            + '<input type="text" name="acore_pdump_rbac_cooldowns[' + i + '][perm_name]" value="" placeholder="optional" style="flex:1;min-width:80px;">'
+            + '<button type="button" class="button acore-btn-danger acore-pdump-rbac-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>'
+            + '</div>'
+            + '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>'
+            + acorePdumpMakeCdGrid('acore_pdump_rbac_cooldowns[' + i + '][single]', 0)
+            + '<label style="display:block;font-size:12px;font-weight:600;margin:10px 0 4px;">Export All Cooldown</label>'
+            + acorePdumpMakeCdGrid('acore_pdump_rbac_cooldowns[' + i + '][all]', 0)
+            + '</div>';
+    }
+
+    /* Add / remove / reset */
+    $('#acore-pdump-sub-add').on('click', function() {
+        var i = $('#acore-pdump-sub-list .acore-pdump-sub-entry').length;
+        $('#acore-pdump-sub-list').append(acorePdumpMakeSubEntry(i));
+    });
+    $('#acore-pdump-sub-list').on('click', '.acore-pdump-sub-remove', function() {
+        $(this).closest('.acore-pdump-sub-entry').remove();
+        acorePdumpSubReindex();
+    });
+    $('#acore-pdump-sub-reset').on('click', function() {
+        if (!confirm('Remove all subscription cooldown overrides?')) return;
+        $('#acore-pdump-sub-list').empty();
+    });
+
+    $('#acore-pdump-rbac-add').on('click', function() {
+        var i = $('#acore-pdump-rbac-list .acore-pdump-rbac-entry').length;
+        $('#acore-pdump-rbac-list').append(acorePdumpMakeRbacEntry(i));
+    });
+    $('#acore-pdump-rbac-list').on('click', '.acore-pdump-rbac-remove', function() {
+        $(this).closest('.acore-pdump-rbac-entry').remove();
+        acorePdumpRbacReindex();
+    });
+    $('#acore-pdump-rbac-reset').on('click', function() {
+        if (!confirm('Remove all RBAC cooldown overrides?')) return;
+        $('#acore-pdump-rbac-list').empty();
+    });
+
+    /* Toggle subscription wrap */
+    $('#acore_pdump_subscription_enabled').on('change', function() {
+        var on = $(this).val() === '1';
+        $('#acore-pdump-sub-wrap').css({ opacity: on ? '' : '0.45', 'pointer-events': on ? '' : 'none' });
+    });
+
+    /* Sync hidden seconds whenever D/H/M/S change inside override entries */
+    $('#acore-pdump-sub-list, #acore-pdump-rbac-list').on('input', '.acore-cd-d, .acore-cd-h, .acore-cd-m, .acore-cd-s', function() {
+        acorePdumpCdWrapUpdate($(this).closest('.acore-pdump-cd-wrap'));
+    });
+
+    /* Validate on submit: override cooldowns must be < default */
+    $('input[name="Submit"]').closest('form').on('submit', function(e) {
+        /* Sync all wrap hidden fields first */
+        $('.acore-pdump-cd-wrap').each(function() { acorePdumpCdWrapUpdate($(this)); });
+
+        var defSingle = acorePdumpDefaultSingle();
+        var defAll    = acorePdumpDefaultAll();
+        var errors = [];
+
+        $('#acore-pdump-sub-list .acore-pdump-sub-entry').each(function(i) {
+            var $secs  = $(this).find('.acore-pdump-cd-secs');
+            var single = parseInt($secs.eq(0).val(), 10) || 0;
+            var all    = parseInt($secs.eq(1).val(), 10) || 0;
+            if (defSingle > 0 && single >= defSingle) errors.push('Subscription entry ' + (i+1) + ': Single Dump must be less than the default (' + defSingle + 's).');
+            if (defAll    > 0 && all    >= defAll)    errors.push('Subscription entry ' + (i+1) + ': Export All must be less than the default ('    + defAll    + 's).');
+        });
+
+        $('#acore-pdump-rbac-list .acore-pdump-rbac-entry').each(function(i) {
+            var $secs  = $(this).find('.acore-pdump-cd-secs');
+            var single = parseInt($secs.eq(0).val(), 10) || 0;
+            var all    = parseInt($secs.eq(1).val(), 10) || 0;
+            if (defSingle > 0 && single >= defSingle) errors.push('RBAC entry ' + (i+1) + ': Single Dump must be less than the default (' + defSingle + 's).');
+            if (defAll    > 0 && all    >= defAll)    errors.push('RBAC entry ' + (i+1) + ': Export All must be less than the default ('    + defAll    + 's).');
+        });
+
+        if (errors.length) {
+            e.preventDefault();
+            alert('Please fix the following before saving:\n\n' + errors.join('\n'));
+        }
     });
 
     /* GeoIP depends on Security Logging being enabled */
