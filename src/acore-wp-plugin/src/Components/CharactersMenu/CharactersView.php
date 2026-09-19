@@ -412,12 +412,15 @@ class CharactersView {
                 acorePdumpModal.style.display = 'flex';
             }
 
-            function acoreShowPdumpError(msg, detail) {
+            function acoreShowPdumpError(msg, detail, isCooldown) {
                 acorePdumpBody.innerHTML = '';
                 // Show the human-readable message + technical detail (if any) in the <pre>
                 acorePdumpErrorMsg.textContent = detail ? (msg + '\n\n' + detail) : msg;
 
-                if (acorePdumpBugReportUrl) {
+                if (isCooldown) {
+                    acorePdumpErrorIntro.textContent = msg;
+                    acorePdumpErrorDetails.style.display = 'none';
+                } else if (acorePdumpBugReportUrl) {
                     acorePdumpErrorIntro.innerHTML =
                         'There was an error, the PDUMP was not successful, it seems to be a bug, please report it on '
                         + '<a href="' + acorePdumpBugReportUrl + '" target="_blank" rel="noopener">GitHub</a>.';
@@ -446,11 +449,12 @@ class CharactersView {
                 }).then(function(resp) {
                     if (!resp.ok) {
                         return resp.json().then(function(body) {
-                            var data   = (body && body.data) ? body.data : body;
-                            var msg    = (data && data.message) ? data.message : 'Export failed (HTTP ' + resp.status + ').';
-                            var detail = (data && data.detail)  ? data.detail  : null;
-                            var err    = new Error(msg);
-                            err.detail = detail;
+                            var data       = (body && body.data) ? body.data : body;
+                            var msg        = (data && data.message) ? data.message : 'Export failed (HTTP ' + resp.status + ').';
+                            var detail     = (data && data.detail)  ? data.detail  : null;
+                            var err        = new Error(msg);
+                            err.detail     = detail;
+                            err.isCooldown = resp.status === 429;
                             throw err;
                         });
                     }
@@ -468,7 +472,8 @@ class CharactersView {
                 }).catch(function(err) {
                     acoreShowPdumpError(
                         err && err.message ? err.message : String(err),
-                        err && err.detail  ? err.detail  : null
+                        err && err.detail  ? err.detail  : null,
+                        !!(err && err.isCooldown)
                     );
                 });
             }
@@ -484,11 +489,12 @@ class CharactersView {
                 }).then(function(resp) {
                     if (!resp.ok) {
                         return resp.json().then(function(body) {
-                            var data   = (body && body.data) ? body.data : body;
-                            var msg    = (data && data.message) ? data.message : 'Export failed (HTTP ' + resp.status + ').';
-                            var detail = (data && data.detail)  ? data.detail  : null;
-                            var err    = new Error(msg);
-                            err.detail = detail;
+                            var data       = (body && body.data) ? body.data : body;
+                            var msg        = (data && data.message) ? data.message : 'Export failed (HTTP ' + resp.status + ').';
+                            var detail     = (data && data.detail)  ? data.detail  : null;
+                            var err        = new Error(msg);
+                            err.detail     = detail;
+                            err.isCooldown = resp.status === 429;
                             throw err;
                         });
                     }
@@ -506,7 +512,8 @@ class CharactersView {
                 }).catch(function(err) {
                     acoreShowPdumpError(
                         err && err.message ? err.message : String(err),
-                        err && err.detail  ? err.detail  : null
+                        err && err.detail  ? err.detail  : null,
+                        !!(err && err.isCooldown)
                     );
                 });
             }

@@ -245,6 +245,69 @@
                                                     <?php if (Opts::I()->acore_pdump_enabled != '1') echo 'disabled'; ?>>
                                             </td>
                                         </tr>
+                                        <?php
+                                            $cdSingle = max(0, (int) Opts::I()->acore_pdump_cooldown_single);
+                                            $cdAll    = max(0, (int) Opts::I()->acore_pdump_cooldown_all);
+                                            $pdumpOn  = Opts::I()->acore_pdump_enabled == '1';
+                                            $dis      = $pdumpOn ? '' : 'disabled';
+                                            $dep      = $pdumpOn ? '' : 'style="opacity:0.45;pointer-events:none;"';
+                                        ?>
+                                        <tr class="acore-pdump-dependent" <?= $dep ?>>
+                                            <td colspan="2">
+                                                <input type="hidden" name="acore_pdump_cooldown_single" id="acore_pdump_cooldown_single" value="<?= esc_attr($cdSingle) ?>">
+                                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                                                    <label class="acore-help-label" title="How long a player must wait between single character exports. Set all to 0 for no cooldown." style="margin:0;font-weight:600;">Single Dump Cooldown</label>
+                                                    <span class="acore-cd-summary" data-for="acore_pdump_cooldown_single" style="font-size:11px;color:#8b949e;"></span>
+                                                </div>
+                                                <div class="acore-cooldown-inputs" data-target="acore_pdump_cooldown_single"
+                                                     style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="999" class="acore-cd-d" style="width:100%;text-align:center;" value="<?= floor($cdSingle / 86400) ?>" <?= $dis ?>>
+                                                        Days
+                                                    </label>
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="23"  class="acore-cd-h" style="width:100%;text-align:center;" value="<?= floor(($cdSingle % 86400) / 3600) ?>" <?= $dis ?>>
+                                                        Hours
+                                                    </label>
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="59"  class="acore-cd-m" style="width:100%;text-align:center;" value="<?= floor(($cdSingle % 3600) / 60) ?>" <?= $dis ?>>
+                                                        Minutes
+                                                    </label>
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="59"  class="acore-cd-s" style="width:100%;text-align:center;" value="<?= $cdSingle % 60 ?>" <?= $dis ?>>
+                                                        Seconds
+                                                    </label>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr class="acore-pdump-dependent" <?= $dep ?>>
+                                            <td colspan="2">
+                                                <input type="hidden" name="acore_pdump_cooldown_all" id="acore_pdump_cooldown_all" value="<?= esc_attr($cdAll) ?>">
+                                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                                                    <label class="acore-help-label" title="How long a player must wait between Export All (zip) downloads. Set all to 0 for no cooldown." style="margin:0;font-weight:600;">Export All Cooldown</label>
+                                                    <span class="acore-cd-summary" data-for="acore_pdump_cooldown_all" style="font-size:11px;color:#8b949e;"></span>
+                                                </div>
+                                                <div class="acore-cooldown-inputs" data-target="acore_pdump_cooldown_all"
+                                                     style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="999" class="acore-cd-d" style="width:100%;text-align:center;" value="<?= floor($cdAll / 86400) ?>" <?= $dis ?>>
+                                                        Days
+                                                    </label>
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="23"  class="acore-cd-h" style="width:100%;text-align:center;" value="<?= floor(($cdAll % 86400) / 3600) ?>" <?= $dis ?>>
+                                                        Hours
+                                                    </label>
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="59"  class="acore-cd-m" style="width:100%;text-align:center;" value="<?= floor(($cdAll % 3600) / 60) ?>" <?= $dis ?>>
+                                                        Minutes
+                                                    </label>
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="59"  class="acore-cd-s" style="width:100%;text-align:center;" value="<?= $cdAll % 60 ?>" <?= $dis ?>>
+                                                        Seconds
+                                                    </label>
+                                                </div>
+                                            </td>
+                                        </tr>
                                         <tr>
                                             <th><label class="acore-help-label" title="The TOTPMasterSecret from your authserver.conf, hexadecimal and with no prefix. Players turn on In-game 2FA from their Security page: the site generates the key, shows the QR code and writes it to the account itself. Leave this empty if authserver.conf leaves it empty - it has to match, or the server will not be able to read the keys the site writes.">In-game 2FA Master Secret</label></th>
                                             <td>
@@ -407,12 +470,39 @@
         $row.find('input[type="checkbox"]').prop('disabled', !on);
     });
 
-    /* PDUMP Bug Report URL depends on PDUMP being enabled */
+    /* PDUMP Bug Report URL + cooldown rows depend on PDUMP being enabled */
     $('#acore_pdump_enabled').on('change', function(){
         var on = $(this).val() === '1';
-        var $row = $('#acore-pdump-bug-url-row');
-        $row.css({ opacity: on ? '' : '0.45', 'pointer-events': on ? '' : 'none' });
+        $('#acore-pdump-bug-url-row').css({ opacity: on ? '' : '0.45', 'pointer-events': on ? '' : 'none' });
         $('#acore_bug_report_url').prop('disabled', !on);
+        $('.acore-pdump-dependent').css({ opacity: on ? '' : '0.45', 'pointer-events': on ? '' : 'none' });
+        $('.acore-pdump-dependent input[type="number"]').prop('disabled', !on);
+    });
+
+    /* Cooldown d/h/m/s inputs → hidden seconds field + TH preview */
+    function acoreCdUpdate($wrap) {
+        var d = parseInt($wrap.find('.acore-cd-d').val(), 10) || 0;
+        var h = parseInt($wrap.find('.acore-cd-h').val(), 10) || 0;
+        var m = parseInt($wrap.find('.acore-cd-m').val(), 10) || 0;
+        var s = parseInt($wrap.find('.acore-cd-s').val(), 10) || 0;
+        var total = d * 86400 + h * 3600 + m * 60 + s;
+        var target = $wrap.data('target');
+        $('#' + target).val(total);
+
+        var parts = [];
+        if (d) parts.push(d + 'd');
+        if (h) parts.push(h + 'h');
+        if (m) parts.push(m + 'm');
+        if (s) parts.push(s + 's');
+        var label = total > 0 ? parts.join(' ') : 'No cooldown';
+        $('[data-for="' + target + '"]').text(label);
+    }
+
+    $('.acore-cooldown-inputs').each(function() {
+        acoreCdUpdate($(this));
+        $(this).on('input', 'input[type="number"]', function() {
+            acoreCdUpdate($(this).closest('.acore-cooldown-inputs'));
+        });
     });
 
     /* GeoIP depends on Security Logging being enabled */

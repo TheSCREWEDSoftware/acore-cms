@@ -18,6 +18,24 @@ add_action('rest_api_init', function () {
     ]);
 });
 
+/**
+ * Format a number of seconds into a human-readable string like "1h 30m".
+ */
+function pdumpFormatCooldown(int $seconds): string
+{
+    $d = intdiv($seconds, 86400);
+    $h = intdiv($seconds % 86400, 3600);
+    $m = intdiv($seconds % 3600, 60);
+    $s = $seconds % 60;
+
+    $parts = [];
+    if ($d) $parts[] = $d . 'd';
+    if ($h) $parts[] = $h . 'h';
+    if ($m) $parts[] = $m . 'm';
+    if ($s) $parts[] = $s . 's';
+    return implode(' ', $parts) ?: '0s';
+}
+
 function handlePdump(\WP_REST_Request $request): void
 {
     $guid  = (int) $request->get_param('guid');
@@ -31,6 +49,21 @@ function handlePdump(\WP_REST_Request $request): void
     if (!$accId || $guid < 1) {
         wp_send_json_error(['message' => 'Forbidden.'], 403);
         exit;
+    }
+
+    $cooldown = max(0, (int) Opts::I()->acore_pdump_cooldown_single);
+    if ($cooldown > 0) {
+        $userId   = get_current_user_id();
+        $lastTime = (int) get_user_meta($userId, '_acore_pdump_last_single', true);
+        $elapsed  = time() - $lastTime;
+        if ($elapsed < $cooldown) {
+            $remaining = $cooldown - $elapsed;
+            wp_send_json_error([
+                'message'     => 'You can export again in ' . pdumpFormatCooldown($remaining) . '.',
+                'retry_after' => $remaining,
+            ], 429);
+            exit;
+        }
     }
 
     $conn = ACoreServices::I()->getCharacterEm()->getConnection();
@@ -84,6 +117,10 @@ function handlePdump(\WP_REST_Request $request): void
         ob_end_clean();
     }
 
+    if ($cooldown > 0) {
+        update_user_meta(get_current_user_id(), '_acore_pdump_last_single', time());
+    }
+
     header('Content-Type: text/plain; charset=utf-8');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
     header('Content-Length: ' . strlen($dump));
@@ -105,6 +142,21 @@ function handlePdumpAll(\WP_REST_Request $request): void
     if (!$accId) {
         wp_send_json_error(['message' => 'Forbidden.'], 403);
         exit;
+    }
+
+    $cooldownAll = max(0, (int) Opts::I()->acore_pdump_cooldown_all);
+    if ($cooldownAll > 0) {
+        $userId      = get_current_user_id();
+        $lastTimeAll = (int) get_user_meta($userId, '_acore_pdump_last_all', true);
+        $elapsedAll  = time() - $lastTimeAll;
+        if ($elapsedAll < $cooldownAll) {
+            $remaining = $cooldownAll - $elapsedAll;
+            wp_send_json_error([
+                'message'     => 'You can export all again in ' . pdumpFormatCooldown($remaining) . '.',
+                'retry_after' => $remaining,
+            ], 429);
+            exit;
+        }
     }
 
     $body       = $request->get_json_params();
@@ -175,6 +227,10 @@ function handlePdumpAll(\WP_REST_Request $request): void
     $zip->close();
 
     if (ob_get_level()) ob_end_clean();
+
+    if ($cooldownAll > 0) {
+        update_user_meta(get_current_user_id(), '_acore_pdump_last_all', time());
+    }
 
     header('Content-Type: application/zip');
     header('Content-Disposition: attachment; filename="dump_all_' . $now . '.zip"');
