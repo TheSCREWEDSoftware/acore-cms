@@ -37,6 +37,133 @@ function pdumpFormatCooldown(int $seconds): string
 }
 
 /**
+ * Check whether the current account is eligible to use PDUMP at all.
+ *
+ * Enforces:
+ *  - Server maintenance gate (realmlist.allowedSecurityLevel >= 1)
+ *  - Min account age since registration (when min-req enabled)
+ *  - Min total playtime across all characters (when min-req enabled)
+ *  - Min character level reached on any character (when min-req enabled)
+ *
+ * @param int $accId AzerothCore account ID
+ * @return string|null  null if eligible; error message string if blocked
+ */
+function pdumpCheckEligibility(int $accId): ?string
+{
+    $opts = Opts::I();
+
+    // ── Maintenance mode gate ───────────────────────────────────────────────
+    if ($opts->acore_pdump_block_maintenance == '1') {
+        try {
+            $authConn = ACoreServices::I()->getAccountEm()->getConnection();
+            $rlRow    = $authConn->executeQuery(
+                'SELECT `allowedSecurityLevel` FROM `realmlist` LIMIT 1'
+            )->fetchAssociative();
+            if ($rlRow && (int) $rlRow['allowedSecurityLevel'] >= 1) {
+                return 'Character export is unavailable while the server is in maintenance mode (only accessible to GMs).';
+            }
+        } catch (\Throwable $e) {
+            // Realmlist table unreachable — block as a safety measure
+            return 'Could not verify server status. Please try again later.';
+        }
+    }
+
+    // ── Player security level gate ──────────────────────────────────────────
+    // Mirrors realmlist.allowedSecurityLevel: block accounts whose security is
+    // below the threshold (they cannot log in during maintenance / GM-only mode).
+    $allowedSecLevel = (int) $opts->acore_pdump_allowed_sec_level;
+    if ($allowedSecLevel > 0) {
+        try {
+            $authConn = ACoreServices::I()->getAccountEm()->getConnection();
+            $secRow   = $authConn->executeQuery(
+                'SELECT `security` FROM `account` WHERE `id` = ? LIMIT 1',
+                [$accId]
+            )->fetchAssociative();
+            if ($secRow === false) {
+                return 'Account not found.';
+            }
+            if ((int) $secRow['security'] < $allowedSecLevel) {
+                return 'Character export is currently unavailable (server is in maintenance mode).';
+            }
+        } catch (\Throwable $e) {
+            return 'Could not verify account security level. Please try again later.';
+        }
+    }
+
+    // ── Minimum requirements ────────────────────────────────────────────────
+    if ($opts->acore_pdump_min_req_enabled != '1') {
+        return null;
+    }
+
+    $checkAge      = $opts->acore_pdump_min_acct_age_enabled   == '1';
+    $checkPlaytime = $opts->acore_pdump_min_playtime_enabled    == '1';
+    $checkLevel    = $opts->acore_pdump_min_char_level_enabled  == '1';
+
+    $minAcctAge   = $checkAge      ? (int) $opts->acore_pdump_min_acct_age   : 0;
+    $minPlaytime  = $checkPlaytime ? (int) $opts->acore_pdump_min_playtime   : 0;
+    $minCharLevel = $checkLevel    ? (int) $opts->acore_pdump_min_char_level : 0;
+
+    // ── Min account age (from auth DB) ─────────────────────────────────────
+    if ($minAcctAge > 0) {
+        try {
+            $authConn = ACoreServices::I()->getAccountEm()->getConnection();
+            $accRow   = $authConn->executeQuery(
+                'SELECT UNIX_TIMESTAMP(`joindate`) AS joindate_ts FROM `account` WHERE `id` = ? LIMIT 1',
+                [$accId]
+            )->fetchAssociative();
+
+            if ($accRow === false) {
+                return 'Account not found.';
+            }
+
+            $accountAge = time() - (int) $accRow['joindate_ts'];
+            if ($accountAge < $minAcctAge) {
+                $remaining = $minAcctAge - $accountAge;
+                return 'Your account must be at least ' . pdumpFormatCooldown($minAcctAge) . ' old to use PDUMP. '
+                    . 'Eligible in: ' . pdumpFormatCooldown($remaining) . '.';
+            }
+        } catch (\Throwable $e) {
+            return 'Could not verify account eligibility. Please try again later.';
+        }
+    }
+
+    // ── Min playtime + min character level (from char DB) ──────────────────
+    if ($minPlaytime > 0 || $minCharLevel > 0) {
+        try {
+            $charConn = ACoreServices::I()->getCharacterEm()->getConnection();
+
+            if ($minPlaytime > 0) {
+                $ptRow = $charConn->executeQuery(
+                    'SELECT COALESCE(SUM(`totaltime`), 0) AS total_secs FROM `characters` WHERE `account` = ? AND `deleteDate` IS NULL',
+                    [$accId]
+                )->fetchAssociative();
+                $totalPlaytime = (int) ($ptRow['total_secs'] ?? 0);
+                if ($totalPlaytime < $minPlaytime) {
+                    $remaining = $minPlaytime - $totalPlaytime;
+                    return 'You need at least ' . pdumpFormatCooldown($minPlaytime) . ' of total playtime to use PDUMP. '
+                        . 'You need ' . pdumpFormatCooldown($remaining) . ' more.';
+                }
+            }
+
+            if ($minCharLevel > 0) {
+                $lvRow = $charConn->executeQuery(
+                    'SELECT MAX(`level`) AS max_level FROM `characters` WHERE `account` = ? AND `deleteDate` IS NULL',
+                    [$accId]
+                )->fetchAssociative();
+                $maxLevel = (int) ($lvRow['max_level'] ?? 0);
+                if ($maxLevel < $minCharLevel) {
+                    return 'You must reach at least level ' . $minCharLevel . ' on one character to use PDUMP.';
+                }
+            }
+        } catch (\Throwable $e) {
+            return 'Could not verify character eligibility. Please try again later.';
+        }
+    }
+
+    return null;
+}
+
+/**
  * Resolve the effective cooldown for the current user.
  *
  * Checks all enabled override systems (subscription, RBAC, contributor) and
@@ -165,8 +292,19 @@ function handlePdump(\WP_REST_Request $request): void
         exit;
     }
 
+    if (Opts::I()->acore_pdump_single_enabled == '0') {
+        wp_send_json_error(['message' => 'Single character export is currently disabled.'], 403);
+        exit;
+    }
+
     if (!$accId || $guid < 1) {
         wp_send_json_error(['message' => 'Forbidden.'], 403);
+        exit;
+    }
+
+    $eligibilityError = pdumpCheckEligibility($accId);
+    if ($eligibilityError !== null) {
+        wp_send_json_error(['message' => $eligibilityError], 403);
         exit;
     }
 
@@ -267,8 +405,19 @@ function handlePdumpAll(\WP_REST_Request $request): void
         exit;
     }
 
+    if (Opts::I()->acore_pdump_all_enabled == '0') {
+        wp_send_json_error(['message' => 'Export All is currently disabled.'], 403);
+        exit;
+    }
+
     if (!$accId) {
         wp_send_json_error(['message' => 'Forbidden.'], 403);
+        exit;
+    }
+
+    $eligibilityError = pdumpCheckEligibility($accId);
+    if ($eligibilityError !== null) {
+        wp_send_json_error(['message' => $eligibilityError], 403);
         exit;
     }
 

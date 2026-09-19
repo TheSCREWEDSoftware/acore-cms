@@ -60,6 +60,24 @@ class Opts {
     public $acore_pdump_subscription_cooldowns=[];
     public $acore_pdump_rbac_enabled="0";
     public $acore_pdump_rbac_default_sec_level="0";
+    // Accounts with account.security >= this value cannot use PDUMP. Default 1 = GMs and above are blocked.
+    public $acore_pdump_allowed_sec_level="1";
+    public $acore_pdump_single_enabled="1";
+    public $acore_pdump_all_enabled="1";
+    // Automatically block PDUMP when the realm's allowedSecurityLevel is >= 1 (maintenance / GM-only mode).
+    public $acore_pdump_block_maintenance="1";
+    // Master toggle for the minimum-requirements checks (playtime, account age, character level).
+    public $acore_pdump_min_req_enabled="0";
+    // Individual toggles for each minimum requirement check.
+    public $acore_pdump_min_playtime_enabled="0";
+    public $acore_pdump_min_acct_age_enabled="0";
+    public $acore_pdump_min_char_level_enabled="0";
+    // Minimum total account playtime in seconds (sum across all characters). 0 = no requirement.
+    public $acore_pdump_min_playtime="0";
+    // Minimum account age in seconds since registration. 0 = no requirement.
+    public $acore_pdump_min_acct_age="0";
+    // Minimum character level any character on the account must have reached. 0 = no requirement.
+    public $acore_pdump_min_char_level="80";
     public $acore_pdump_rbac_cooldowns=[
         ['perm_id' => 195, 'perm_name' => 'Player',        'single' => 0, 'all' => 0],
         ['perm_id' => 194, 'perm_name' => 'Moderator',     'single' => 0, 'all' => 0],

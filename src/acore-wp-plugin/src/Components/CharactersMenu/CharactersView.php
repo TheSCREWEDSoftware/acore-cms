@@ -28,7 +28,8 @@ class CharactersView {
     private function formatDate($ts) { return date('d-m-Y', intval($ts)); }
     private function formatTime($ts) { return date('H:i',   intval($ts)); }
 
-    public function getHomeRender($characters, $mutetime = 0, $accBanRow = null, $serverRevision = '', $serverRevisionUrl = '', $bugReportUrl = '', $pdumpEnabled = false, $showAccountBan = false, $showAccountMute = false, $showCharBan = false) {
+    public function getHomeRender($characters, $mutetime = 0, $accBanRow = null, $serverRevision = '', $serverRevisionUrl = '', $bugReportUrl = '', $pdumpSingleEnabled = false, $pdumpAllEnabled = false, $showAccountBan = false, $showAccountMute = false, $showCharBan = false) {
+        $pdumpEnabled = $pdumpSingleEnabled || $pdumpAllEnabled;
         $now = time();
 
         // Account mute
@@ -97,7 +98,7 @@ class CharactersView {
                                         <div class="acore-col-header-cell">Ban<span class="acore-col-header-fmt">DD-MM-YYYY at HH:MM</span></div>
                                     <?php endif; ?>
                                     <div class="acore-col-header-cell">
-                                        <?php if ($pdumpEnabled): ?>
+                                        <?php if ($pdumpAllEnabled): ?>
                                         <button type="button" class="button button-primary acore-export-all-btn">Export All</button>
                                         <?php endif; ?>
                                     </div>
@@ -137,7 +138,7 @@ class CharactersView {
                                                 </div>
                                             <?php endif; ?>
                                             <div class="acore-char-ext-col">
-                                                <?php if ($pdumpEnabled): ?>
+                                                <?php if ($pdumpSingleEnabled): ?>
                                                 <button type="button" class="button button-primary acore-export-btn"
                                                     data-char-guid="<?= esc_attr($char['guid']) ?>"
                                                     data-char-name="<?= esc_attr($char['name']) ?>"

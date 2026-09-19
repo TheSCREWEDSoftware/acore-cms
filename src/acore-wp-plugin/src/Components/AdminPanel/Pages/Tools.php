@@ -348,6 +348,13 @@
                                     $pdumpOn      = Opts::I()->acore_pdump_enabled == '1';
                                     $dis          = $pdumpOn ? '' : 'disabled';
                                     $dep          = $pdumpOn ? '' : 'style="opacity:0.45;pointer-events:none;"';
+                                    $singleEnabled      = Opts::I()->acore_pdump_single_enabled    != '0';
+                                    $allEnabled         = Opts::I()->acore_pdump_all_enabled       != '0';
+                                    $blockMaintenance   = Opts::I()->acore_pdump_block_maintenance  != '0';
+                                    $minReqEnabled      = Opts::I()->acore_pdump_min_req_enabled         != '0';
+                                    $minPlaytime        = max(0, (int) Opts::I()->acore_pdump_min_playtime);
+                                    $minAcctAge         = max(0, (int) Opts::I()->acore_pdump_min_acct_age);
+                                    $minCharLevel       = max(0, (int) Opts::I()->acore_pdump_min_char_level);
                                     $subEnabled   = Opts::I()->acore_pdump_subscription_enabled == '1';
                                     $subCooldowns = Opts::I()->acore_pdump_subscription_cooldowns;
                                     if (!is_array($subCooldowns)) $subCooldowns = [];
@@ -381,56 +388,156 @@
                                             </td>
                                         </tr>
                                         <tr class="acore-pdump-dependent" <?= $dep ?>>
-                                            <th><label class="acore-help-label" title="The secId from rbac_default_permissions representing a normal player (typically 0). This is the baseline used by both the default cooldowns and the RBAC overrides below.">Player Security Level <code>secId</code></label></th>
-                                            <td><input type="number" name="acore_pdump_rbac_default_sec_level" id="acore_pdump_rbac_default_sec_level" min="0" value="<?= esc_attr($rbacSecLevel) ?>" style="width:70px;text-align:center;" <?= $dis ?>></td>
+                                            <th><label class="acore-help-label" title="The secId from rbac_default_permissions representing a normal player (typically 0). This is the baseline used by both the default cooldowns and the RBAC overrides below.">Player Security Level</label></th>
+                                            <td><input type="number" name="acore_pdump_rbac_default_sec_level" id="acore_pdump_rbac_default_sec_level" min="0" value="<?= esc_attr($rbacSecLevel) ?>" style="width:60px;text-align:center;" <?= $dis ?>></td>
+                                        </tr>
+                                        <tr class="acore-pdump-dependent" <?= $dep ?>>
+                                            <th><label class="acore-help-label" title="Mirrors realmlist.allowedSecurityLevel — the minimum account security required to log in to the server. Accounts with security below this value cannot use PDUMP. Default 1: regular players (security 0) are blocked while the server is in GM-only / maintenance mode. Set to 0 to disable this check.">Allowed Security Level</label></th>
+                                            <td><input type="number" name="acore_pdump_allowed_sec_level" min="0" max="255" value="<?= esc_attr((int) Opts::I()->acore_pdump_allowed_sec_level) ?>" style="width:60px;text-align:center;" <?= $dis ?>></td>
                                         </tr>
                                         <tr class="acore-pdump-dependent" <?= $dep ?>>
                                             <td colspan="2">
+                                                <label class="acore-help-label" style="display:flex;align-items:center;gap:6px;cursor:pointer;" title="When the server's realmlist.allowedSecurityLevel is ≥ 1, only GMs can log in (maintenance mode). Enable this to automatically block PDUMP exports while the server is inaccessible to regular players.">
+                                                    <input type="hidden" name="acore_pdump_block_maintenance" value="0">
+                                                    <input type="checkbox" name="acore_pdump_block_maintenance" value="1" <?= $blockMaintenance ? 'checked' : '' ?> <?= $dis ?>>
+                                                    Block PDUMP during maintenance
+                                                </label>
+                                            </td>
+                                        </tr>
+                                        <?php
+                                        // ── Minimum Requirements ──────────────────────────────────────────
+                                        $lbl5 = 'display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;';
+                                        $mrDis          = $minReqEnabled ? '' : 'disabled';
+                                        $minPtEnabled   = Opts::I()->acore_pdump_min_playtime_enabled   != '0';
+                                        $minAgeEnabled  = Opts::I()->acore_pdump_min_acct_age_enabled   != '0';
+                                        $minLvlEnabled  = Opts::I()->acore_pdump_min_char_level_enabled != '0';
+                                        ?>
+                                        <tr class="acore-pdump-dependent" <?= $dep ?>>
+                                            <td colspan="2" style="padding-top:12px;border-top:1px solid #30363d;">
+                                                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                                                    <strong style="font-size:13px;">Minimum Requirements</strong>
+                                                    <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#8b949e;margin-left:auto;white-space:nowrap;cursor:pointer;">
+                                                        <input type="hidden" name="acore_pdump_min_req_enabled" value="0">
+                                                        <input type="checkbox" id="acore-pdump-min-req-enabled-cb" name="acore_pdump_min_req_enabled" value="1" <?= $minReqEnabled ? 'checked' : '' ?> <?= $dis ?>>
+                                                        Enabled
+                                                    </label>
+                                                </div>
+                                                <p style="font-size:11px;color:#8b949e;margin:0 0 10px;">Accounts must meet all checked requirements below before PDUMP is available.</p>
+                                                <div id="acore-pdump-min-req-fields" <?= !$minReqEnabled ? 'style="opacity:0.45;pointer-events:none;"' : '' ?>>
+
+                                                    <!-- Min Total Playtime -->
+                                                    <div id="acore-pdump-min-pt-wrap" style="margin-bottom:12px;">
+                                                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                                                            <label style="font-weight:600;font-size:12px;margin:0;">Min Total Playtime <span style="font-weight:400;color:#8b949e;">(sum across all characters)</span></label>
+                                                            <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#8b949e;margin-left:auto;white-space:nowrap;cursor:pointer;">
+                                                                <input type="hidden" name="acore_pdump_min_playtime_enabled" value="0">
+                                                                <input type="checkbox" id="acore-pdump-min-pt-enabled-cb" name="acore_pdump_min_playtime_enabled" value="1" <?= $minPtEnabled ? 'checked' : '' ?> <?= $dis ?: $mrDis ?>>
+                                                                Enabled
+                                                            </label>
+                                                        </div>
+                                                        <div id="acore-pdump-min-pt-grid" <?= !$minPtEnabled ? 'style="opacity:0.45;pointer-events:none;"' : '' ?>>
+                                                            <input type="hidden" name="acore_pdump_min_playtime" id="acore_pdump_min_playtime" value="<?= esc_attr($minPlaytime) ?>">
+                                                            <?php $y=intdiv($minPlaytime,31536000); $mo=intdiv($minPlaytime%31536000,2592000); $d=intdiv($minPlaytime%2592000,86400); $h=intdiv($minPlaytime%86400,3600); ?>
+                                                            <div class="acore-cooldown-inputs" data-target="acore_pdump_min_playtime" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:360px;">
+                                                                <label style="<?= $lbl5 ?>"><input type="number" min="0" max="99" class="acore-cd-y"  style="width:100%;text-align:center;" value="<?= $y ?>"  <?= $dis ?: ($mrDis ?: (!$minPtEnabled ? 'disabled' : '')) ?>>Years</label>
+                                                                <label style="<?= $lbl5 ?>"><input type="number" min="0" max="11" class="acore-cd-mo" style="width:100%;text-align:center;" value="<?= $mo ?>" <?= $dis ?: ($mrDis ?: (!$minPtEnabled ? 'disabled' : '')) ?>>Months</label>
+                                                                <label style="<?= $lbl5 ?>"><input type="number" min="0" max="29" class="acore-cd-d"  style="width:100%;text-align:center;" value="<?= $d ?>"  <?= $dis ?: ($mrDis ?: (!$minPtEnabled ? 'disabled' : '')) ?>>Days</label>
+                                                                <label style="<?= $lbl5 ?>"><input type="number" min="0" max="23" class="acore-cd-h"  style="width:100%;text-align:center;" value="<?= $h ?>"  <?= $dis ?: ($mrDis ?: (!$minPtEnabled ? 'disabled' : '')) ?>>Hours</label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Min Account Age -->
+                                                    <div id="acore-pdump-min-age-wrap" style="margin-bottom:12px;">
+                                                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                                                            <label style="font-weight:600;font-size:12px;margin:0;">Min Account Age <span style="font-weight:400;color:#8b949e;">(since registration)</span></label>
+                                                            <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#8b949e;margin-left:auto;white-space:nowrap;cursor:pointer;">
+                                                                <input type="hidden" name="acore_pdump_min_acct_age_enabled" value="0">
+                                                                <input type="checkbox" id="acore-pdump-min-age-enabled-cb" name="acore_pdump_min_acct_age_enabled" value="1" <?= $minAgeEnabled ? 'checked' : '' ?> <?= $dis ?: $mrDis ?>>
+                                                                Enabled
+                                                            </label>
+                                                        </div>
+                                                        <div id="acore-pdump-min-age-grid" <?= !$minAgeEnabled ? 'style="opacity:0.45;pointer-events:none;"' : '' ?>>
+                                                            <input type="hidden" name="acore_pdump_min_acct_age" id="acore_pdump_min_acct_age" value="<?= esc_attr($minAcctAge) ?>">
+                                                            <?php $y=intdiv($minAcctAge,31536000); $mo=intdiv($minAcctAge%31536000,2592000); $d=intdiv($minAcctAge%2592000,86400); $h=intdiv($minAcctAge%86400,3600); ?>
+                                                            <div class="acore-cooldown-inputs" data-target="acore_pdump_min_acct_age" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:360px;">
+                                                                <label style="<?= $lbl5 ?>"><input type="number" min="0" max="99" class="acore-cd-y"  style="width:100%;text-align:center;" value="<?= $y ?>"  <?= $dis ?: ($mrDis ?: (!$minAgeEnabled ? 'disabled' : '')) ?>>Years</label>
+                                                                <label style="<?= $lbl5 ?>"><input type="number" min="0" max="11" class="acore-cd-mo" style="width:100%;text-align:center;" value="<?= $mo ?>" <?= $dis ?: ($mrDis ?: (!$minAgeEnabled ? 'disabled' : '')) ?>>Months</label>
+                                                                <label style="<?= $lbl5 ?>"><input type="number" min="0" max="29" class="acore-cd-d"  style="width:100%;text-align:center;" value="<?= $d ?>"  <?= $dis ?: ($mrDis ?: (!$minAgeEnabled ? 'disabled' : '')) ?>>Days</label>
+                                                                <label style="<?= $lbl5 ?>"><input type="number" min="0" max="23" class="acore-cd-h"  style="width:100%;text-align:center;" value="<?= $h ?>"  <?= $dis ?: ($mrDis ?: (!$minAgeEnabled ? 'disabled' : '')) ?>>Hours</label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Min Character Level -->
+                                                    <div id="acore-pdump-min-lvl-wrap">
+                                                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                                                            <label style="font-weight:600;font-size:12px;margin:0;">Min Character Level</label>
+                                                            <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#8b949e;margin-left:auto;white-space:nowrap;cursor:pointer;">
+                                                                <input type="hidden" name="acore_pdump_min_char_level_enabled" value="0">
+                                                                <input type="checkbox" id="acore-pdump-min-lvl-enabled-cb" name="acore_pdump_min_char_level_enabled" value="1" <?= $minLvlEnabled ? 'checked' : '' ?> <?= $dis ?: $mrDis ?>>
+                                                                Enabled
+                                                            </label>
+                                                        </div>
+                                                        <div id="acore-pdump-min-lvl-grid" <?= !$minLvlEnabled ? 'style="opacity:0.45;pointer-events:none;"' : '' ?>>
+                                                            <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#8b949e;">
+                                                                Level (1–255):
+                                                                <input type="number" name="acore_pdump_min_char_level" min="1" max="255" value="<?= esc_attr($minCharLevel) ?>" style="width:60px;text-align:center;" <?= $dis ?: ($mrDis ?: (!$minLvlEnabled ? 'disabled' : '')) ?>>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <?php $cdLbl = 'display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;'; ?>
+                                        <tr class="acore-pdump-dependent" <?= $dep ?>>
+                                            <td colspan="2" style="padding-top:12px;border-top:1px solid #30363d;">
                                                 <input type="hidden" name="acore_pdump_cooldown_single" id="acore_pdump_cooldown_single" value="<?= esc_attr($cdSingle) ?>">
-                                                <label class="acore-help-label" title="How long a player must wait between single character exports. Set all to 0 for no cooldown." style="display:block;font-weight:600;margin-bottom:6px;">Single Dump Cooldown <span style="font-weight:400;color:#8b949e;">(Everyone / Default)</span></label>
-                                                <div class="acore-cooldown-inputs" data-target="acore_pdump_cooldown_single"
-                                                     style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="99"  class="acore-cd-y"  style="width:100%;text-align:center;" value="<?= intdiv($cdSingle, 31536000) ?>" <?= $dis ?>>
-                                                        Years
+                                                <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+                                                    <div>
+                                                        <label class="acore-help-label" title="How long a player must wait between single character exports. Set all to 0 for no cooldown." style="font-weight:600;margin:0;display:block;">Single Dump Cooldown</label>
+                                                        <span style="font-size:11px;color:#8b949e;">(Everyone / Default)</span>
+                                                    </div>
+                                                    <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#8b949e;margin-left:auto;white-space:nowrap;cursor:pointer;">
+                                                        <input type="hidden" name="acore_pdump_single_enabled" value="0">
+                                                        <input type="checkbox" id="acore-pdump-single-enabled-cb" name="acore_pdump_single_enabled" value="1" <?= $singleEnabled ? 'checked' : '' ?> <?= $dis ?>>
+                                                        Enabled
                                                     </label>
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="11"  class="acore-cd-mo" style="width:100%;text-align:center;" value="<?= intdiv($cdSingle % 31536000, 2592000) ?>" <?= $dis ?>>
-                                                        Months
-                                                    </label>
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="29"  class="acore-cd-d"  style="width:100%;text-align:center;" value="<?= intdiv($cdSingle % 2592000, 86400) ?>" <?= $dis ?>>
-                                                        Days
-                                                    </label>
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="23"  class="acore-cd-h"  style="width:100%;text-align:center;" value="<?= intdiv($cdSingle % 86400, 3600) ?>" <?= $dis ?>>
-                                                        Hours
-                                                    </label>
+                                                </div>
+                                                <div id="acore-pdump-single-cd-grid" <?= !$singleEnabled ? 'style="opacity:0.45;pointer-events:none;"' : '' ?>>
+                                                    <div class="acore-cooldown-inputs" data-target="acore_pdump_cooldown_single"
+                                                         style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:360px;">
+                                                        <label style="<?= $cdLbl ?>"><input type="number" min="0" max="99"  class="acore-cd-y"  style="width:100%;text-align:center;" value="<?= intdiv($cdSingle, 31536000) ?>"           <?= ($dis ?: (!$singleEnabled ? 'disabled' : '')) ?>>Years</label>
+                                                        <label style="<?= $cdLbl ?>"><input type="number" min="0" max="11"  class="acore-cd-mo" style="width:100%;text-align:center;" value="<?= intdiv($cdSingle % 31536000, 2592000) ?>" <?= ($dis ?: (!$singleEnabled ? 'disabled' : '')) ?>>Months</label>
+                                                        <label style="<?= $cdLbl ?>"><input type="number" min="0" max="29"  class="acore-cd-d"  style="width:100%;text-align:center;" value="<?= intdiv($cdSingle % 2592000, 86400) ?>"   <?= ($dis ?: (!$singleEnabled ? 'disabled' : '')) ?>>Days</label>
+                                                        <label style="<?= $cdLbl ?>"><input type="number" min="0" max="23"  class="acore-cd-h"  style="width:100%;text-align:center;" value="<?= intdiv($cdSingle % 86400, 3600) ?>"      <?= ($dis ?: (!$singleEnabled ? 'disabled' : '')) ?>>Hours</label>
+                                                    </div>
                                                 </div>
                                             </td>
                                         </tr>
                                         <tr class="acore-pdump-dependent" <?= $dep ?>>
-                                            <td colspan="2">
+                                            <td colspan="2" style="padding-top:8px;">
                                                 <input type="hidden" name="acore_pdump_cooldown_all" id="acore_pdump_cooldown_all" value="<?= esc_attr($cdAll) ?>">
-                                                <label class="acore-help-label" title="How long a player must wait between Export All (zip) downloads. Set all to 0 for no cooldown." style="display:block;font-weight:600;margin-bottom:6px;">Export All Cooldown <span style="font-weight:400;color:#8b949e;">(Everyone / Default)</span></label>
-                                                <div class="acore-cooldown-inputs" data-target="acore_pdump_cooldown_all"
-                                                     style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="99"  class="acore-cd-y"  style="width:100%;text-align:center;" value="<?= intdiv($cdAll, 31536000) ?>" <?= $dis ?>>
-                                                        Years
+                                                <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+                                                    <div>
+                                                        <label class="acore-help-label" title="How long a player must wait between Export All (zip) downloads. Set all to 0 for no cooldown." style="font-weight:600;margin:0;display:block;">Export All Cooldown</label>
+                                                        <span style="font-size:11px;color:#8b949e;">(Everyone / Default)</span>
+                                                    </div>
+                                                    <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#8b949e;margin-left:auto;white-space:nowrap;cursor:pointer;">
+                                                        <input type="hidden" name="acore_pdump_all_enabled" value="0">
+                                                        <input type="checkbox" id="acore-pdump-all-enabled-cb" name="acore_pdump_all_enabled" value="1" <?= $allEnabled ? 'checked' : '' ?> <?= $dis ?>>
+                                                        Enabled
                                                     </label>
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="11"  class="acore-cd-mo" style="width:100%;text-align:center;" value="<?= intdiv($cdAll % 31536000, 2592000) ?>" <?= $dis ?>>
-                                                        Months
-                                                    </label>
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="29"  class="acore-cd-d"  style="width:100%;text-align:center;" value="<?= intdiv($cdAll % 2592000, 86400) ?>" <?= $dis ?>>
-                                                        Days
-                                                    </label>
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="23"  class="acore-cd-h"  style="width:100%;text-align:center;" value="<?= intdiv($cdAll % 86400, 3600) ?>" <?= $dis ?>>
-                                                        Hours
-                                                    </label>
+                                                </div>
+                                                <div id="acore-pdump-all-cd-grid" <?= !$allEnabled ? 'style="opacity:0.45;pointer-events:none;"' : '' ?>>
+                                                    <div class="acore-cooldown-inputs" data-target="acore_pdump_cooldown_all"
+                                                         style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:360px;">
+                                                        <label style="<?= $cdLbl ?>"><input type="number" min="0" max="99"  class="acore-cd-y"  style="width:100%;text-align:center;" value="<?= intdiv($cdAll, 31536000) ?>"           <?= ($dis ?: (!$allEnabled ? 'disabled' : '')) ?>>Years</label>
+                                                        <label style="<?= $cdLbl ?>"><input type="number" min="0" max="11"  class="acore-cd-mo" style="width:100%;text-align:center;" value="<?= intdiv($cdAll % 31536000, 2592000) ?>" <?= ($dis ?: (!$allEnabled ? 'disabled' : '')) ?>>Months</label>
+                                                        <label style="<?= $cdLbl ?>"><input type="number" min="0" max="29"  class="acore-cd-d"  style="width:100%;text-align:center;" value="<?= intdiv($cdAll % 2592000, 86400) ?>"   <?= ($dis ?: (!$allEnabled ? 'disabled' : '')) ?>>Days</label>
+                                                        <label style="<?= $cdLbl ?>"><input type="number" min="0" max="23"  class="acore-cd-h"  style="width:100%;text-align:center;" value="<?= intdiv($cdAll % 86400, 3600) ?>"      <?= ($dis ?: (!$allEnabled ? 'disabled' : '')) ?>>Hours</label>
+                                                    </div>
                                                 </div>
                                             </td>
                                         </tr>
@@ -466,10 +573,14 @@
                                                     </label>
                                                     <button type="button" class="button acore-btn-danger acore-pdump-sub-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
                                                 </div>
-                                                <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
-                                                <?php echo acorePdumpCdGrid("acore_pdump_subscription_cooldowns[$i][single]", (int)($row['single'] ?? 0)); ?>
-                                                <label style="display:block;font-size:12px;font-weight:600;margin:10px 0 4px;">Export All Cooldown</label>
-                                                <?php echo acorePdumpCdGrid("acore_pdump_subscription_cooldowns[$i][all]", (int)($row['all'] ?? 0)); ?>
+                                                <div class="acore-pdump-col-single">
+                                                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
+                                                    <?php echo acorePdumpCdGrid("acore_pdump_subscription_cooldowns[$i][single]", (int)($row['single'] ?? 0)); ?>
+                                                </div>
+                                                <div class="acore-pdump-col-all" style="margin-top:10px;">
+                                                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Export All Cooldown</label>
+                                                    <?php echo acorePdumpCdGrid("acore_pdump_subscription_cooldowns[$i][all]", (int)($row['all'] ?? 0)); ?>
+                                                </div>
                                             </div>
                                             <?php endforeach; ?>
                                         </div>
@@ -509,10 +620,14 @@
                                                     </label>
                                                     <button type="button" class="button acore-btn-danger acore-pdump-rbac-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
                                                 </div>
-                                                <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
-                                                <?php echo acorePdumpCdGrid("acore_pdump_rbac_cooldowns[$i][single]", (int)($row['single'] ?? 0)); ?>
-                                                <label style="display:block;font-size:12px;font-weight:600;margin:10px 0 4px;">Export All Cooldown</label>
-                                                <?php echo acorePdumpCdGrid("acore_pdump_rbac_cooldowns[$i][all]", (int)($row['all'] ?? 0)); ?>
+                                                <div class="acore-pdump-col-single">
+                                                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
+                                                    <?php echo acorePdumpCdGrid("acore_pdump_rbac_cooldowns[$i][single]", (int)($row['single'] ?? 0)); ?>
+                                                </div>
+                                                <div class="acore-pdump-col-all" style="margin-top:10px;">
+                                                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Export All Cooldown</label>
+                                                    <?php echo acorePdumpCdGrid("acore_pdump_rbac_cooldowns[$i][all]", (int)($row['all'] ?? 0)); ?>
+                                                </div>
                                             </div>
                                             <?php endforeach; ?>
                                         </div>
@@ -552,10 +667,14 @@
                                                     </label>
                                                     <button type="button" class="button acore-btn-danger acore-pdump-contrib-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
                                                 </div>
-                                                <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
-                                                <?php echo acorePdumpCdGrid("acore_pdump_contributor_cooldowns[$i][single]", (int)($row['single'] ?? 0)); ?>
-                                                <label style="display:block;font-size:12px;font-weight:600;margin:10px 0 4px;">Export All Cooldown</label>
-                                                <?php echo acorePdumpCdGrid("acore_pdump_contributor_cooldowns[$i][all]", (int)($row['all'] ?? 0)); ?>
+                                                <div class="acore-pdump-col-single">
+                                                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
+                                                    <?php echo acorePdumpCdGrid("acore_pdump_contributor_cooldowns[$i][single]", (int)($row['single'] ?? 0)); ?>
+                                                </div>
+                                                <div class="acore-pdump-col-all" style="margin-top:10px;">
+                                                    <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Export All Cooldown</label>
+                                                    <?php echo acorePdumpCdGrid("acore_pdump_contributor_cooldowns[$i][all]", (int)($row['all'] ?? 0)); ?>
+                                                </div>
                                             </div>
                                             <?php endforeach; ?>
                                         </div>
@@ -753,10 +872,14 @@
             + '<input type="checkbox" class="acore-pdump-use-default" name="acore_pdump_subscription_cooldowns[' + i + '][use_default]" value="1"> Use Default</label>'
             + '<button type="button" class="button acore-btn-danger acore-pdump-sub-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>'
             + '</div>'
+            + '<div class="acore-pdump-col-single">'
             + '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>'
             + acorePdumpMakeCdGrid('acore_pdump_subscription_cooldowns[' + i + '][single]', 0)
-            + '<label style="display:block;font-size:12px;font-weight:600;margin:10px 0 4px;">Export All Cooldown</label>'
+            + '</div>'
+            + '<div class="acore-pdump-col-all" style="margin-top:10px;">'
+            + '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Export All Cooldown</label>'
             + acorePdumpMakeCdGrid('acore_pdump_subscription_cooldowns[' + i + '][all]', 0)
+            + '</div>'
             + '</div>';
     }
 
@@ -776,10 +899,14 @@
             + '<input type="checkbox" class="acore-pdump-use-default" name="acore_pdump_rbac_cooldowns[' + i + '][use_default]" value="1"> Use Default</label>'
             + '<button type="button" class="button acore-btn-danger acore-pdump-rbac-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>'
             + '</div>'
+            + '<div class="acore-pdump-col-single">'
             + '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>'
             + acorePdumpMakeCdGrid('acore_pdump_rbac_cooldowns[' + i + '][single]', 0)
-            + '<label style="display:block;font-size:12px;font-weight:600;margin:10px 0 4px;">Export All Cooldown</label>'
+            + '</div>'
+            + '<div class="acore-pdump-col-all" style="margin-top:10px;">'
+            + '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Export All Cooldown</label>'
             + acorePdumpMakeCdGrid('acore_pdump_rbac_cooldowns[' + i + '][all]', 0)
+            + '</div>'
             + '</div>';
     }
 
@@ -874,10 +1001,14 @@
             + '<input type="checkbox" class="acore-pdump-use-default" name="acore_pdump_contributor_cooldowns[' + i + '][use_default]" value="1"> Use Default</label>'
             + '<button type="button" class="button acore-btn-danger acore-pdump-contrib-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>'
             + '</div>'
+            + '<div class="acore-pdump-col-single">'
             + '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>'
             + acorePdumpMakeCdGrid('acore_pdump_contributor_cooldowns[' + i + '][single]', 0)
-            + '<label style="display:block;font-size:12px;font-weight:600;margin:10px 0 4px;">Export All Cooldown</label>'
+            + '</div>'
+            + '<div class="acore-pdump-col-all" style="margin-top:10px;">'
+            + '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Export All Cooldown</label>'
             + acorePdumpMakeCdGrid('acore_pdump_contributor_cooldowns[' + i + '][all]', 0)
+            + '</div>'
             + '</div>';
     }
 
@@ -928,6 +1059,53 @@
         $('#acore-pdump-contrib-wrap').css({ opacity: on ? '' : '0.45', 'pointer-events': on ? '' : 'none' });
     });
 
+    /* ── Single / All enabled toggles ───────────────────────────────────── */
+    function acoreApplyPdumpTypeToggle(isOn, type) {
+        var $col = $('.acore-pdump-col-' + type);
+        $col.css({ opacity: isOn ? '' : '0.45', 'pointer-events': isOn ? '' : 'none' });
+        $col.find('input').prop('disabled', !isOn);
+        var $grid = $('#acore-pdump-' + type + '-cd-grid');
+        $grid.css({ opacity: isOn ? '' : '0.45', 'pointer-events': isOn ? '' : 'none' });
+        $grid.find('input').prop('disabled', !isOn);
+        /* If both types are disabled, show a warning badge; otherwise hide it */
+        var bothOff = !$('#acore-pdump-single-enabled-cb').prop('checked') && !$('#acore-pdump-all-enabled-cb').prop('checked');
+        $('#acore-pdump-both-disabled-notice').toggle(bothOff);
+    }
+    $('#acore-pdump-single-enabled-cb').on('change', function() {
+        acoreApplyPdumpTypeToggle($(this).prop('checked'), 'single');
+    });
+    $('#acore-pdump-all-enabled-cb').on('change', function() {
+        acoreApplyPdumpTypeToggle($(this).prop('checked'), 'all');
+    });
+    /* Init on page load */
+    acoreApplyPdumpTypeToggle($('#acore-pdump-single-enabled-cb').prop('checked'), 'single');
+    acoreApplyPdumpTypeToggle($('#acore-pdump-all-enabled-cb').prop('checked'), 'all');
+
+    /* ── Min Requirements enable toggle ─────────────────────────────────── */
+    function acoreApplyMinReqToggle(isOn) {
+        var $fields = $('#acore-pdump-min-req-fields');
+        $fields.css({ opacity: isOn ? '' : '0.45', 'pointer-events': isOn ? '' : 'none' });
+        $fields.find('input').prop('disabled', !isOn);
+    }
+    $('#acore-pdump-min-req-enabled-cb').on('change', function() {
+        acoreApplyMinReqToggle($(this).prop('checked'));
+    });
+    acoreApplyMinReqToggle($('#acore-pdump-min-req-enabled-cb').prop('checked'));
+
+    /* ── Per-requirement toggles ─────────────────────────────────────────── */
+    function acoreApplyMinSubToggle(cbId, gridId) {
+        var isOn = $(cbId).prop('checked');
+        var $grid = $(gridId);
+        $grid.css({ opacity: isOn ? '' : '0.45', 'pointer-events': isOn ? '' : 'none' });
+        $grid.find('input').prop('disabled', !isOn);
+    }
+    $('#acore-pdump-min-pt-enabled-cb').on('change',  function() { acoreApplyMinSubToggle('#acore-pdump-min-pt-enabled-cb',  '#acore-pdump-min-pt-grid');  });
+    $('#acore-pdump-min-age-enabled-cb').on('change', function() { acoreApplyMinSubToggle('#acore-pdump-min-age-enabled-cb', '#acore-pdump-min-age-grid'); });
+    $('#acore-pdump-min-lvl-enabled-cb').on('change', function() { acoreApplyMinSubToggle('#acore-pdump-min-lvl-enabled-cb', '#acore-pdump-min-lvl-grid'); });
+    acoreApplyMinSubToggle('#acore-pdump-min-pt-enabled-cb',  '#acore-pdump-min-pt-grid');
+    acoreApplyMinSubToggle('#acore-pdump-min-age-enabled-cb', '#acore-pdump-min-age-grid');
+    acoreApplyMinSubToggle('#acore-pdump-min-lvl-enabled-cb', '#acore-pdump-min-lvl-grid');
+
     /* Sync hidden seconds whenever Y/Mo/D/H change inside override entries */
     $('#acore-pdump-sub-list, #acore-pdump-rbac-list, #acore-pdump-contrib-list').on('input', '.acore-cd-y, .acore-cd-mo, .acore-cd-d, .acore-cd-h', function() {
         acorePdumpCdWrapUpdate($(this).closest('.acore-pdump-cd-wrap'));
@@ -954,8 +1132,10 @@
         /* Sync all wrap hidden fields first */
         $('.acore-pdump-cd-wrap').each(function() { acorePdumpCdWrapUpdate($(this)); });
 
-        var defSingle = acorePdumpDefaultSingle();
-        var defAll    = acorePdumpDefaultAll();
+        var singleOn  = $('#acore-pdump-single-enabled-cb').prop('checked');
+        var allOn     = $('#acore-pdump-all-enabled-cb').prop('checked');
+        var defSingle = singleOn ? acorePdumpDefaultSingle() : 0;
+        var defAll    = allOn    ? acorePdumpDefaultAll()    : 0;
         var errors = [];
 
         $('#acore-pdump-sub-list .acore-pdump-sub-entry').each(function(i) {
