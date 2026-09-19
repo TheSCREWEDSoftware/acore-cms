@@ -459,6 +459,11 @@
                                                     <input type="number" name="acore_pdump_subscription_cooldowns[<?= $i ?>][level]" min="0" value="<?= (int)($row['level'] ?? 0) ?>" style="width:60px;text-align:center;">
                                                     <label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>
                                                     <input type="text" name="acore_pdump_subscription_cooldowns[<?= $i ?>][name]" value="<?= esc_attr($row['name'] ?? '') ?>" placeholder="optional" style="flex:1;min-width:80px;">
+                                                    <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#8b949e;margin-left:auto;white-space:nowrap;">
+                                                        <input type="hidden" name="acore_pdump_subscription_cooldowns[<?= $i ?>][use_default]" value="0">
+                                                        <input type="checkbox" class="acore-pdump-use-default" name="acore_pdump_subscription_cooldowns[<?= $i ?>][use_default]" value="1" <?= !empty($row['use_default']) ? 'checked' : '' ?>>
+                                                        Use Default
+                                                    </label>
                                                     <button type="button" class="button acore-btn-danger acore-pdump-sub-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
                                                 </div>
                                                 <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
@@ -497,6 +502,11 @@
                                                     <input type="number" name="acore_pdump_rbac_cooldowns[<?= $i ?>][perm_id]" min="0" value="<?= (int)($row['perm_id'] ?? 0) ?>" style="width:60px;text-align:center;">
                                                     <label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>
                                                     <input type="text" name="acore_pdump_rbac_cooldowns[<?= $i ?>][perm_name]" value="<?= esc_attr($row['perm_name'] ?? '') ?>" placeholder="optional" style="flex:1;min-width:80px;">
+                                                    <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#8b949e;margin-left:auto;white-space:nowrap;">
+                                                        <input type="hidden" name="acore_pdump_rbac_cooldowns[<?= $i ?>][use_default]" value="0">
+                                                        <input type="checkbox" class="acore-pdump-use-default" name="acore_pdump_rbac_cooldowns[<?= $i ?>][use_default]" value="1" <?= !empty($row['use_default']) ? 'checked' : '' ?>>
+                                                        Use Default
+                                                    </label>
                                                     <button type="button" class="button acore-btn-danger acore-pdump-rbac-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
                                                 </div>
                                                 <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
@@ -535,6 +545,11 @@
                                                     <input type="number" name="acore_pdump_contributor_cooldowns[<?= $i ?>][level]" min="1" max="4" value="<?= max(1, min(4, (int)($row['level'] ?? 1))) ?>" style="width:50px;text-align:center;" title="1 Bronze · 2 Silver · 3 Gold · 4 Platinum">
                                                     <label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>
                                                     <input type="text" name="acore_pdump_contributor_cooldowns[<?= $i ?>][name]" value="<?= esc_attr($row['name'] ?? '') ?>" placeholder="optional" style="flex:1;min-width:80px;">
+                                                    <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#8b949e;margin-left:auto;white-space:nowrap;">
+                                                        <input type="hidden" name="acore_pdump_contributor_cooldowns[<?= $i ?>][use_default]" value="0">
+                                                        <input type="checkbox" class="acore-pdump-use-default" name="acore_pdump_contributor_cooldowns[<?= $i ?>][use_default]" value="1" <?= !empty($row['use_default']) ? 'checked' : '' ?>>
+                                                        Use Default
+                                                    </label>
                                                     <button type="button" class="button acore-btn-danger acore-pdump-contrib-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
                                                 </div>
                                                 <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
@@ -733,6 +748,9 @@
             + '<input type="number" name="acore_pdump_subscription_cooldowns[' + i + '][level]" min="0" value="0" style="width:60px;text-align:center;">'
             + '<label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>'
             + '<input type="text" name="acore_pdump_subscription_cooldowns[' + i + '][name]" value="" placeholder="optional" style="flex:1;min-width:80px;">'
+            + '<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#8b949e;margin-left:auto;white-space:nowrap;">'
+            + '<input type="hidden" name="acore_pdump_subscription_cooldowns[' + i + '][use_default]" value="0">'
+            + '<input type="checkbox" class="acore-pdump-use-default" name="acore_pdump_subscription_cooldowns[' + i + '][use_default]" value="1"> Use Default</label>'
             + '<button type="button" class="button acore-btn-danger acore-pdump-sub-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>'
             + '</div>'
             + '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>'
@@ -753,6 +771,9 @@
             + '<input type="number" name="acore_pdump_rbac_cooldowns[' + i + '][perm_id]" min="0" value="' + permId + '" style="width:60px;text-align:center;">'
             + '<label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>'
             + '<input type="text" name="acore_pdump_rbac_cooldowns[' + i + '][perm_name]" value="' + permName.replace(/"/g, '&quot;') + '" placeholder="optional" style="flex:1;min-width:80px;">'
+            + '<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#8b949e;margin-left:auto;white-space:nowrap;">'
+            + '<input type="hidden" name="acore_pdump_rbac_cooldowns[' + i + '][use_default]" value="0">'
+            + '<input type="checkbox" class="acore-pdump-use-default" name="acore_pdump_rbac_cooldowns[' + i + '][use_default]" value="1"> Use Default</label>'
             + '<button type="button" class="button acore-btn-danger acore-pdump-rbac-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>'
             + '</div>'
             + '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>'
@@ -848,6 +869,9 @@
             + '<input type="number" name="acore_pdump_contributor_cooldowns[' + i + '][level]" min="1" max="4" value="' + level + '" style="width:50px;text-align:center;" title="1 Bronze · 2 Silver · 3 Gold · 4 Platinum">'
             + '<label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>'
             + '<input type="text" name="acore_pdump_contributor_cooldowns[' + i + '][name]" value="' + name.replace(/"/g, '&quot;') + '" placeholder="optional" style="flex:1;min-width:80px;">'
+            + '<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#8b949e;margin-left:auto;white-space:nowrap;">'
+            + '<input type="hidden" name="acore_pdump_contributor_cooldowns[' + i + '][use_default]" value="0">'
+            + '<input type="checkbox" class="acore-pdump-use-default" name="acore_pdump_contributor_cooldowns[' + i + '][use_default]" value="1"> Use Default</label>'
             + '<button type="button" class="button acore-btn-danger acore-pdump-contrib-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>'
             + '</div>'
             + '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>'
@@ -909,6 +933,22 @@
         acorePdumpCdWrapUpdate($(this).closest('.acore-pdump-cd-wrap'));
     });
 
+    /* "Use Default Cooldown" checkbox — grey out / disable the CD grids */
+    function acorePdumpApplyUseDefault($cb) {
+        var $entry    = $cb.closest('.acore-pdump-sub-entry, .acore-pdump-rbac-entry, .acore-pdump-contrib-entry');
+        var isDefault = $cb.is(':checked');
+        $entry.find('.acore-pdump-cd-wrap').css('opacity', isDefault ? '0.45' : '');
+        $entry.find('.acore-pdump-cd-grid input').prop('disabled', isDefault);
+    }
+    /* Apply on change */
+    $('#acore-pdump-sub-list, #acore-pdump-rbac-list, #acore-pdump-contrib-list').on('change', '.acore-pdump-use-default', function() {
+        acorePdumpApplyUseDefault($(this));
+    });
+    /* Apply on page load for PHP-rendered checked checkboxes */
+    $('.acore-pdump-use-default:checked').each(function() {
+        acorePdumpApplyUseDefault($(this));
+    });
+
     /* Validate on submit: override cooldowns must be < default */
     $('input[name="Submit"]').closest('form').on('submit', function(e) {
         /* Sync all wrap hidden fields first */
@@ -919,6 +959,7 @@
         var errors = [];
 
         $('#acore-pdump-sub-list .acore-pdump-sub-entry').each(function(i) {
+            if ($(this).find('.acore-pdump-use-default').is(':checked')) return;
             var $secs  = $(this).find('.acore-pdump-cd-secs');
             var single = parseInt($secs.eq(0).val(), 10) || 0;
             var all    = parseInt($secs.eq(1).val(), 10) || 0;
@@ -927,6 +968,7 @@
         });
 
         $('#acore-pdump-rbac-list .acore-pdump-rbac-entry').each(function(i) {
+            if ($(this).find('.acore-pdump-use-default').is(':checked')) return;
             var $secs  = $(this).find('.acore-pdump-cd-secs');
             var single = parseInt($secs.eq(0).val(), 10) || 0;
             var all    = parseInt($secs.eq(1).val(), 10) || 0;
@@ -935,6 +977,7 @@
         });
 
         $('#acore-pdump-contrib-list .acore-pdump-contrib-entry').each(function(i) {
+            if ($(this).find('.acore-pdump-use-default').is(':checked')) return;
             var $secs  = $(this).find('.acore-pdump-cd-secs');
             var single = parseInt($secs.eq(0).val(), 10) || 0;
             var all    = parseInt($secs.eq(1).val(), 10) || 0;
