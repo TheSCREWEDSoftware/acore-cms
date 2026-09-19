@@ -454,10 +454,12 @@
                                         <div id="acore-pdump-sub-list">
                                             <?php foreach ($subCooldowns as $i => $row): ?>
                                             <div class="acore-pdump-sub-entry" style="border:1px solid #30363d;border-radius:4px;padding:10px;margin-bottom:8px;">
-                                                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-                                                    <label style="font-size:12px;font-weight:600;margin:0;">Membership Level</label>
+                                                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                                                    <label style="font-size:12px;font-weight:600;margin:0;">Level</label>
                                                     <input type="number" name="acore_pdump_subscription_cooldowns[<?= $i ?>][level]" min="0" value="<?= (int)($row['level'] ?? 0) ?>" style="width:60px;text-align:center;">
-                                                    <button type="button" class="button acore-btn-danger acore-pdump-sub-remove" style="margin-left:auto;padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
+                                                    <label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>
+                                                    <input type="text" name="acore_pdump_subscription_cooldowns[<?= $i ?>][name]" value="<?= esc_attr($row['name'] ?? '') ?>" placeholder="optional" style="flex:1;min-width:80px;">
+                                                    <button type="button" class="button acore-btn-danger acore-pdump-sub-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>
                                                 </div>
                                                 <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>
                                                 <?php echo acorePdumpCdGrid("acore_pdump_subscription_cooldowns[$i][single]", (int)($row['single'] ?? 0)); ?>
@@ -711,10 +713,12 @@
     /* Build a full subscription entry block */
     function acorePdumpMakeSubEntry(i) {
         return '<div class="acore-pdump-sub-entry" style="border:1px solid #30363d;border-radius:4px;padding:10px;margin-bottom:8px;">'
-            + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
-            + '<label style="font-size:12px;font-weight:600;margin:0;">Membership Level</label>'
+            + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">'
+            + '<label style="font-size:12px;font-weight:600;margin:0;">Level</label>'
             + '<input type="number" name="acore_pdump_subscription_cooldowns[' + i + '][level]" min="0" value="0" style="width:60px;text-align:center;">'
-            + '<button type="button" class="button acore-btn-danger acore-pdump-sub-remove" style="margin-left:auto;padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>'
+            + '<label style="font-size:12px;font-weight:600;margin:0 0 0 4px;">Name</label>'
+            + '<input type="text" name="acore_pdump_subscription_cooldowns[' + i + '][name]" value="" placeholder="optional" style="flex:1;min-width:80px;">'
+            + '<button type="button" class="button acore-btn-danger acore-pdump-sub-remove" style="padding:2px 6px;" title="Remove"><span class="dashicons dashicons-trash" style="margin-top:4px;"></span></button>'
             + '</div>'
             + '<label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Single Dump Cooldown</label>'
             + acorePdumpMakeCdGrid('acore_pdump_subscription_cooldowns[' + i + '][single]', 0)
