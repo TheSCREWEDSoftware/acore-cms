@@ -227,88 +227,6 @@
                                             </td>
                                         </tr>
                                         <tr>
-                                            <th><label class="acore-help-label" title="Allows players to export their characters individually or all at once as a PDUMP file, importable into any AzerothCore server. Custom content (Transmog, Physical Costumes) is NOT included. The following information is automatically anonymised before download: character name, position and hearthstone (reset to faction capital), gold, timestamps, online status, achievement dates, mail contents and sender, item creator/gifter GUIDs, aura caster GUIDs, equipment set names, custom chat channels, and all character and account IDs (replaced with random values).">Enable PDump</label></th>
-                                            <td>
-                                                <select name="acore_pdump_enabled" id="acore_pdump_enabled">
-                                                    <option value="0" <?php if (Opts::I()->acore_pdump_enabled != '1') echo 'selected'; ?>>Disabled</option>
-                                                    <option value="1" <?php if (Opts::I()->acore_pdump_enabled == '1') echo 'selected'; ?>>Enabled</option>
-                                                </select>
-                                            </td>
-                                        </tr>
-                                        <tr id="acore-pdump-bug-url-row" <?php if (Opts::I()->acore_pdump_enabled != '1') echo 'style="opacity:0.45;pointer-events:none;"'; ?>>
-                                            <th><label class="acore-help-label" title="GitHub Issues URL where players are directed to report bugs when a PDUMP export fails. Requires PDUMP to be enabled.">PDUMP Bug Report URL</label></th>
-                                            <td>
-                                                <input type="url" name="acore_bug_report_url" id="acore_bug_report_url"
-                                                    value="<?= esc_attr(Opts::I()->acore_bug_report_url) ?>"
-                                                    placeholder="https://github.com/your-org/your-repo/issues/new"
-                                                    style="width:100%;max-width:480px;"
-                                                    <?php if (Opts::I()->acore_pdump_enabled != '1') echo 'disabled'; ?>>
-                                            </td>
-                                        </tr>
-                                        <?php
-                                            $cdSingle = max(0, (int) Opts::I()->acore_pdump_cooldown_single);
-                                            $cdAll    = max(0, (int) Opts::I()->acore_pdump_cooldown_all);
-                                            $pdumpOn  = Opts::I()->acore_pdump_enabled == '1';
-                                            $dis      = $pdumpOn ? '' : 'disabled';
-                                            $dep      = $pdumpOn ? '' : 'style="opacity:0.45;pointer-events:none;"';
-                                        ?>
-                                        <tr class="acore-pdump-dependent" <?= $dep ?>>
-                                            <td colspan="2">
-                                                <input type="hidden" name="acore_pdump_cooldown_single" id="acore_pdump_cooldown_single" value="<?= esc_attr($cdSingle) ?>">
-                                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                                                    <label class="acore-help-label" title="How long a player must wait between single character exports. Set all to 0 for no cooldown." style="margin:0;font-weight:600;">Single Dump Cooldown</label>
-                                                    <span class="acore-cd-summary" data-for="acore_pdump_cooldown_single" style="font-size:11px;color:#8b949e;"></span>
-                                                </div>
-                                                <div class="acore-cooldown-inputs" data-target="acore_pdump_cooldown_single"
-                                                     style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="999" class="acore-cd-d" style="width:100%;text-align:center;" value="<?= floor($cdSingle / 86400) ?>" <?= $dis ?>>
-                                                        Days
-                                                    </label>
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="23"  class="acore-cd-h" style="width:100%;text-align:center;" value="<?= floor(($cdSingle % 86400) / 3600) ?>" <?= $dis ?>>
-                                                        Hours
-                                                    </label>
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="59"  class="acore-cd-m" style="width:100%;text-align:center;" value="<?= floor(($cdSingle % 3600) / 60) ?>" <?= $dis ?>>
-                                                        Minutes
-                                                    </label>
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="59"  class="acore-cd-s" style="width:100%;text-align:center;" value="<?= $cdSingle % 60 ?>" <?= $dis ?>>
-                                                        Seconds
-                                                    </label>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr class="acore-pdump-dependent" <?= $dep ?>>
-                                            <td colspan="2">
-                                                <input type="hidden" name="acore_pdump_cooldown_all" id="acore_pdump_cooldown_all" value="<?= esc_attr($cdAll) ?>">
-                                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                                                    <label class="acore-help-label" title="How long a player must wait between Export All (zip) downloads. Set all to 0 for no cooldown." style="margin:0;font-weight:600;">Export All Cooldown</label>
-                                                    <span class="acore-cd-summary" data-for="acore_pdump_cooldown_all" style="font-size:11px;color:#8b949e;"></span>
-                                                </div>
-                                                <div class="acore-cooldown-inputs" data-target="acore_pdump_cooldown_all"
-                                                     style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="999" class="acore-cd-d" style="width:100%;text-align:center;" value="<?= floor($cdAll / 86400) ?>" <?= $dis ?>>
-                                                        Days
-                                                    </label>
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="23"  class="acore-cd-h" style="width:100%;text-align:center;" value="<?= floor(($cdAll % 86400) / 3600) ?>" <?= $dis ?>>
-                                                        Hours
-                                                    </label>
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="59"  class="acore-cd-m" style="width:100%;text-align:center;" value="<?= floor(($cdAll % 3600) / 60) ?>" <?= $dis ?>>
-                                                        Minutes
-                                                    </label>
-                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
-                                                        <input type="number" min="0" max="59"  class="acore-cd-s" style="width:100%;text-align:center;" value="<?= $cdAll % 60 ?>" <?= $dis ?>>
-                                                        Seconds
-                                                    </label>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr>
                                             <th><label class="acore-help-label" title="The TOTPMasterSecret from your authserver.conf, hexadecimal and with no prefix. Players turn on In-game 2FA from their Security page: the site generates the key, shows the QR code and writes it to the account itself. Leave this empty if authserver.conf leaves it empty - it has to match, or the server will not be able to read the keys the site writes.">In-game 2FA Master Secret</label></th>
                                             <td>
                                                 <input type="password" name="acore_totp_master_secret" id="acore_totp_master_secret"
@@ -400,6 +318,100 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- PDUMP Settings -->
+                        <div class="card p-0" style="margin-top:16px;">
+                            <div class="card-body">
+                                <h5>PDUMP Settings</h5>
+                                <hr>
+                                <table class="form-table table table-borderless" role="presentation">
+                                    <tbody>
+                                        <tr>
+                                            <th><label class="acore-help-label" title="Allows players to export their characters individually or all at once as a PDUMP file, importable into any AzerothCore server. Custom content (Transmog, Physical Costumes) is NOT included. The following information is automatically anonymised before download: character name, position and hearthstone (reset to faction capital), gold, timestamps, online status, achievement dates, mail contents and sender, item creator/gifter GUIDs, aura caster GUIDs, equipment set names, custom chat channels, and all character and account IDs (replaced with random values).">Enable PDump</label></th>
+                                            <td>
+                                                <select name="acore_pdump_enabled" id="acore_pdump_enabled">
+                                                    <option value="0" <?php if (Opts::I()->acore_pdump_enabled != '1') echo 'selected'; ?>>Disabled</option>
+                                                    <option value="1" <?php if (Opts::I()->acore_pdump_enabled == '1') echo 'selected'; ?>>Enabled</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr id="acore-pdump-bug-url-row" <?php if (Opts::I()->acore_pdump_enabled != '1') echo 'style="opacity:0.45;pointer-events:none;"'; ?>>
+                                            <th><label class="acore-help-label" title="GitHub Issues URL where players are directed to report bugs when a PDUMP export fails. Requires PDUMP to be enabled.">PDUMP Bug Report URL</label></th>
+                                            <td>
+                                                <input type="url" name="acore_bug_report_url" id="acore_bug_report_url"
+                                                    value="<?= esc_attr(Opts::I()->acore_bug_report_url) ?>"
+                                                    placeholder="https://github.com/your-org/your-repo/issues/new"
+                                                    style="width:100%;max-width:480px;"
+                                                    <?php if (Opts::I()->acore_pdump_enabled != '1') echo 'disabled'; ?>>
+                                            </td>
+                                        </tr>
+                                        <?php
+                                            $cdSingle = max(0, (int) Opts::I()->acore_pdump_cooldown_single);
+                                            $cdAll    = max(0, (int) Opts::I()->acore_pdump_cooldown_all);
+                                            $pdumpOn  = Opts::I()->acore_pdump_enabled == '1';
+                                            $dis      = $pdumpOn ? '' : 'disabled';
+                                            $dep      = $pdumpOn ? '' : 'style="opacity:0.45;pointer-events:none;"';
+                                        ?>
+                                        <tr class="acore-pdump-dependent" <?= $dep ?>>
+                                            <td colspan="2">
+                                                <input type="hidden" name="acore_pdump_cooldown_single" id="acore_pdump_cooldown_single" value="<?= esc_attr($cdSingle) ?>">
+                                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                                                    <label class="acore-help-label" title="How long a player must wait between single character exports. Set all to 0 for no cooldown." style="margin:0;font-weight:600;">Single Dump Cooldown</label>
+                                                    <span class="acore-cd-summary" data-for="acore_pdump_cooldown_single" style="font-size:11px;color:#8b949e;"></span>
+                                                </div>
+                                                <div class="acore-cooldown-inputs" data-target="acore_pdump_cooldown_single"
+                                                     style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="999" class="acore-cd-d" style="width:100%;text-align:center;" value="<?= floor($cdSingle / 86400) ?>" <?= $dis ?>>
+                                                        Days
+                                                    </label>
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="23"  class="acore-cd-h" style="width:100%;text-align:center;" value="<?= floor(($cdSingle % 86400) / 3600) ?>" <?= $dis ?>>
+                                                        Hours
+                                                    </label>
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="59"  class="acore-cd-m" style="width:100%;text-align:center;" value="<?= floor(($cdSingle % 3600) / 60) ?>" <?= $dis ?>>
+                                                        Minutes
+                                                    </label>
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="59"  class="acore-cd-s" style="width:100%;text-align:center;" value="<?= $cdSingle % 60 ?>" <?= $dis ?>>
+                                                        Seconds
+                                                    </label>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr class="acore-pdump-dependent" <?= $dep ?>>
+                                            <td colspan="2">
+                                                <input type="hidden" name="acore_pdump_cooldown_all" id="acore_pdump_cooldown_all" value="<?= esc_attr($cdAll) ?>">
+                                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                                                    <label class="acore-help-label" title="How long a player must wait between Export All (zip) downloads. Set all to 0 for no cooldown." style="margin:0;font-weight:600;">Export All Cooldown</label>
+                                                    <span class="acore-cd-summary" data-for="acore_pdump_cooldown_all" style="font-size:11px;color:#8b949e;"></span>
+                                                </div>
+                                                <div class="acore-cooldown-inputs" data-target="acore_pdump_cooldown_all"
+                                                     style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="999" class="acore-cd-d" style="width:100%;text-align:center;" value="<?= floor($cdAll / 86400) ?>" <?= $dis ?>>
+                                                        Days
+                                                    </label>
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="23"  class="acore-cd-h" style="width:100%;text-align:center;" value="<?= floor(($cdAll % 86400) / 3600) ?>" <?= $dis ?>>
+                                                        Hours
+                                                    </label>
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="59"  class="acore-cd-m" style="width:100%;text-align:center;" value="<?= floor(($cdAll % 3600) / 60) ?>" <?= $dis ?>>
+                                                        Minutes
+                                                    </label>
+                                                    <label style="display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:0;">
+                                                        <input type="number" min="0" max="59"  class="acore-cd-s" style="width:100%;text-align:center;" value="<?= $cdAll % 60 ?>" <?= $dis ?>>
+                                                        Seconds
+                                                    </label>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div><!-- /PDUMP Settings -->
                     </div><!-- /col3 -->
 
                 </div><!-- /row -->
