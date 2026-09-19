@@ -376,7 +376,7 @@ function handlePdump(\WP_REST_Request $request): void
         exit;
     }
 
-    if (Opts::I()->acore_pdump_single_enabled == '0') {
+    if (Opts::I()->acore_pdump_single_enabled != '1') {
         wp_send_json_error(['message' => 'Single character export is currently disabled.'], 403);
         exit;
     }
@@ -466,7 +466,7 @@ function handlePdump(\WP_REST_Request $request): void
         exit;
     }
 
-    $filename = strtoupper($charName) . '_' . date('Ymd_His') . '.dump';
+    $filename = 'char_' . $guid . '_' . date('Ymd_His') . '.dump';
 
     if (Opts::I()->acore_pdump_log_enabled == '1') {
         pdumpWriteLog($userId, $accId, 'single', [[
@@ -500,7 +500,7 @@ function handlePdumpAll(\WP_REST_Request $request): void
         exit;
     }
 
-    if (Opts::I()->acore_pdump_all_enabled == '0') {
+    if (Opts::I()->acore_pdump_all_enabled != '1') {
         wp_send_json_error(['message' => 'Export All is currently disabled.'], 403);
         exit;
     }
