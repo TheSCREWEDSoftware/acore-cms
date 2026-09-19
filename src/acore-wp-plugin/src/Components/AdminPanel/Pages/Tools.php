@@ -665,6 +665,21 @@
     function acorePdumpDefaultSingle() { return parseInt($('#acore_pdump_cooldown_single').val(), 10) || 0; }
     function acorePdumpDefaultAll()    { return parseInt($('#acore_pdump_cooldown_all').val(),    10) || 0; }
 
+    /* Format a seconds value as a human-readable duration string */
+    function acoreFormatCd(secs) {
+        if (!secs) return 'no cooldown';
+        var y  = Math.floor(secs / 31536000);
+        var mo = Math.floor((secs % 31536000) / 2592000);
+        var d  = Math.floor((secs % 2592000) / 86400);
+        var h  = Math.floor((secs % 86400) / 3600);
+        var parts = [];
+        if (y)  parts.push(y  + 'y');
+        if (mo) parts.push(mo + 'mo');
+        if (d)  parts.push(d  + 'd');
+        if (h)  parts.push(h  + 'h');
+        return parts.join(' ') || 'no cooldown';
+    }
+
     /* Sync Y/Mo/D/H → hidden .acore-pdump-cd-secs within a .acore-pdump-cd-wrap */
     function acorePdumpCdWrapUpdate($wrap) {
         var y  = parseInt($wrap.find('.acore-cd-y').val(),  10) || 0;
@@ -754,13 +769,27 @@
     });
     $('#acore-pdump-sub-list').on('click', '.acore-pdump-sub-remove', function() {
         var $entry = $(this).closest('.acore-pdump-sub-entry');
-        acoreConfirm('Remove this subscription override?', function() {
+        $entry.find('.acore-pdump-cd-wrap').each(function() { acorePdumpCdWrapUpdate($(this)); });
+        var level  = $entry.find('input[name*="[level]"]').val() || '?';
+        var name   = $entry.find('input[name*="[name]"]').val();
+        var label  = 'Level ' + level + (name ? ' · ' + name : '');
+        var single = acoreFormatCd(parseInt($entry.find('.acore-pdump-cd-secs').eq(0).val(), 10) || 0);
+        var all    = acoreFormatCd(parseInt($entry.find('.acore-pdump-cd-secs').eq(1).val(), 10) || 0);
+        acoreConfirm('You\'re about to remove "' + label + '"\nSingle: ' + single + ' · Export All: ' + all, function() {
             $entry.remove();
             acorePdumpSubReindex();
         });
     });
     $('#acore-pdump-sub-reset').on('click', function() {
-        acoreConfirm('Remove all subscription cooldown overrides?', function() {
+        var rows = [];
+        $('#acore-pdump-sub-list .acore-pdump-sub-entry').each(function() {
+            var level = $(this).find('input[name*="[level]"]').val();
+            var name  = $(this).find('input[name*="[name]"]').val();
+            rows.push('• Level ' + level + (name ? ' · ' + name : ''));
+        });
+        var msg = 'You\'re about to remove all subscription overrides.';
+        if (rows.length) msg += '\n\n' + rows.join('\n');
+        acoreConfirm(msg, function() {
             $('#acore-pdump-sub-list').empty();
         });
     });
@@ -771,19 +800,26 @@
     });
     $('#acore-pdump-rbac-list').on('click', '.acore-pdump-rbac-remove', function() {
         var $entry = $(this).closest('.acore-pdump-rbac-entry');
-        acoreConfirm('Remove this RBAC override?', function() {
+        $entry.find('.acore-pdump-cd-wrap').each(function() { acorePdumpCdWrapUpdate($(this)); });
+        var permId = $entry.find('input[name*="[perm_id]"]').val() || '?';
+        var name   = $entry.find('input[name*="[perm_name]"]').val();
+        var label  = 'ID ' + permId + (name ? ' · ' + name : '');
+        var single = acoreFormatCd(parseInt($entry.find('.acore-pdump-cd-secs').eq(0).val(), 10) || 0);
+        var all    = acoreFormatCd(parseInt($entry.find('.acore-pdump-cd-secs').eq(1).val(), 10) || 0);
+        acoreConfirm('You\'re about to remove "' + label + '"\nSingle: ' + single + ' · Export All: ' + all, function() {
             $entry.remove();
             acorePdumpRbacReindex();
         });
     });
     $('#acore-pdump-rbac-reset').on('click', function() {
-        acoreConfirm('Reset RBAC overrides to defaults?', function() {
-            var rbacDefaults = [
-                { perm_id: 195, perm_name: 'Player' },
-                { perm_id: 194, perm_name: 'Moderator' },
-                { perm_id: 193, perm_name: 'Gamemaster' },
-                { perm_id: 192, perm_name: 'Administrator' },
-            ];
+        var rbacDefaults = [
+            { perm_id: 195, perm_name: 'Player' },
+            { perm_id: 194, perm_name: 'Moderator' },
+            { perm_id: 193, perm_name: 'Gamemaster' },
+            { perm_id: 192, perm_name: 'Administrator' },
+        ];
+        var lines = rbacDefaults.map(function(d) { return '• ID ' + d.perm_id + ' · ' + d.perm_name; });
+        acoreConfirm('Reset RBAC overrides to defaults?\n\n' + lines.join('\n'), function() {
             $('#acore-pdump-rbac-list').empty();
             $.each(rbacDefaults, function(i, d) {
                 $('#acore-pdump-rbac-list').append(acorePdumpMakeRbacEntry(i, d));
@@ -827,19 +863,26 @@
     });
     $('#acore-pdump-contrib-list').on('click', '.acore-pdump-contrib-remove', function() {
         var $entry = $(this).closest('.acore-pdump-contrib-entry');
-        acoreConfirm('Remove this contributor override?', function() {
+        $entry.find('.acore-pdump-cd-wrap').each(function() { acorePdumpCdWrapUpdate($(this)); });
+        var level  = $entry.find('input[name*="[level]"]').val() || '?';
+        var name   = $entry.find('input[name*="[name]"]').val();
+        var label  = 'Level ' + level + (name ? ' · ' + name : '');
+        var single = acoreFormatCd(parseInt($entry.find('.acore-pdump-cd-secs').eq(0).val(), 10) || 0);
+        var all    = acoreFormatCd(parseInt($entry.find('.acore-pdump-cd-secs').eq(1).val(), 10) || 0);
+        acoreConfirm('You\'re about to remove "' + label + '"\nSingle: ' + single + ' · Export All: ' + all, function() {
             $entry.remove();
             acorePdumpContribReindex();
         });
     });
     $('#acore-pdump-contrib-reset').on('click', function() {
-        acoreConfirm('Reset contributor overrides to defaults?', function() {
-            var contribDefaults = [
-                { level: 1, name: 'Bronze' },
-                { level: 2, name: 'Silver' },
-                { level: 3, name: 'Gold' },
-                { level: 4, name: 'Platinum' },
-            ];
+        var contribDefaults = [
+            { level: 1, name: 'Bronze' },
+            { level: 2, name: 'Silver' },
+            { level: 3, name: 'Gold' },
+            { level: 4, name: 'Platinum' },
+        ];
+        var lines = contribDefaults.map(function(d) { return '• Level ' + d.level + ' · ' + d.name; });
+        acoreConfirm('Reset contributor overrides to defaults?\n\n' + lines.join('\n'), function() {
             $('#acore-pdump-contrib-list').empty();
             $.each(contribDefaults, function(i, d) {
                 $('#acore-pdump-contrib-list').append(acorePdumpMakeContribEntry(i, d));
@@ -1087,7 +1130,9 @@
     const deleteThreshold = (ev) => {
         const $btn = $(ev.target).closest('.acore-btn-danger');
         const $tr  = $btn.closest('tr');
-        acoreConfirm('Remove this inactivity threshold row?', function () {
+        const level = $tr.find('input').eq(0).val() || '?';
+        const days  = $tr.find('input').eq(1).val() || '?';
+        acoreConfirm('You\'re about to remove "Level ' + level + ' · ' + days + ' days"', function () {
             $tr.remove();
             let i = 0;
             $('#acore-name-unlock-thresholds tbody tr').each(function () {
@@ -1152,11 +1197,16 @@
 
     /* ── Reset Name Unlock to Defaults ──────────────────────────────── */
     $('#acore-name-unlock-reset').on('click', function () {
-        acoreConfirm(
-            'Reset Name Unlock settings to defaults?\n\n' +
-            'This will clear the banned names table and delete all inactivity thresholds.\n\n' +
-            'This cannot be undone. Continue?',
-            function () {
+        var rows = [];
+        $('#acore-name-unlock-thresholds tbody tr').each(function () {
+            var level = $(this).find('input').eq(0).val();
+            var days  = $(this).find('input').eq(1).val();
+            rows.push('• Level ' + level + ' · ' + days + ' days');
+        });
+        var msg = 'You\'re about to reset Name Unlock to defaults.';
+        if (rows.length) msg += '\n\nThe following thresholds will be removed:\n' + rows.join('\n');
+        msg += '\n\nThe banned names table will also be cleared. Continue?';
+        acoreConfirm(msg, function () {
                 $('input[name="acore_name_unlock_allowed_banned_names_table"]').val('');
                 $('#acore-name-unlock-thresholds tbody tr').remove();
                 $('input[name="Submit"]').closest('form').submit();
