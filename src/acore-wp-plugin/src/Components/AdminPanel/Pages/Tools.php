@@ -831,7 +831,12 @@
         $('#acore-pdump-bug-url-row').css({ opacity: on ? '' : '0.45', 'pointer-events': on ? '' : 'none' });
         $('#acore_bug_report_url').prop('disabled', !on);
         $('.acore-pdump-dependent').css({ opacity: on ? '' : '0.45', 'pointer-events': on ? '' : 'none' });
-        $('.acore-pdump-dependent input, .acore-pdump-dependent select, .acore-pdump-dependent textarea').prop('disabled', !on);
+        $('.acore-pdump-dependent input:not(.acore-pdump-cd-secs), .acore-pdump-dependent select, .acore-pdump-dependent textarea').prop('disabled', !on);
+        if (on) {
+            $('.acore-pdump-use-default:checked').each(function() { acorePdumpApplyUseDefault($(this)); });
+            acoreApplyPdumpTypeToggle($('#acore-pdump-single-enabled-cb').prop('checked'), 'single');
+            acoreApplyPdumpTypeToggle($('#acore-pdump-all-enabled-cb').prop('checked'), 'all');
+        }
     });
 
     /* Cooldown y/mo/d/h inputs → hidden seconds field (1 year=365d, 1 month=30d) */
@@ -1131,10 +1136,10 @@
     function acoreApplyPdumpTypeToggle(isOn, type) {
         var $col = $('.acore-pdump-col-' + type);
         $col.css({ opacity: isOn ? '' : '0.45', 'pointer-events': isOn ? '' : 'none' });
-        $col.find('input').prop('disabled', !isOn);
+        $col.find('input:not(.acore-pdump-cd-secs)').prop('disabled', !isOn);
         var $grid = $('#acore-pdump-' + type + '-cd-grid');
         $grid.css({ opacity: isOn ? '' : '0.45', 'pointer-events': isOn ? '' : 'none' });
-        $grid.find('input').prop('disabled', !isOn);
+        $grid.find('input:not(.acore-pdump-cd-secs)').prop('disabled', !isOn);
         /* If both types are disabled, show a warning badge; otherwise hide it */
         var bothOff = !$('#acore-pdump-single-enabled-cb').prop('checked') && !$('#acore-pdump-all-enabled-cb').prop('checked');
         $('#acore-pdump-both-disabled-notice').toggle(bothOff);

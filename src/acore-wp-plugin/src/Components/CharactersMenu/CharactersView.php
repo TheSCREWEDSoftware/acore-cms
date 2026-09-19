@@ -138,6 +138,15 @@ class CharactersView {
                                                 </div>
                                             <?php endif; ?>
                                             <div class="acore-char-ext-col">
+                                                <?php if ($pdumpEnabled): ?>
+                                                <span class="acore-char-data" style="display:none"
+                                                    data-char-guid="<?= esc_attr($char['guid']) ?>"
+                                                    data-char-name="<?= esc_attr($char['name']) ?>"
+                                                    data-char-order="<?= esc_attr($displayPos) ?>"
+                                                    data-char-level="<?= esc_attr(intval($char['level'])) ?>"
+                                                    data-char-race="<?= esc_attr(AcoreCharColors::getRaceName(intval($char['race']))) ?>"
+                                                    data-char-class="<?= esc_attr(AcoreCharColors::getClassName(intval($char['class']))) ?>"></span>
+                                                <?php endif; ?>
                                                 <?php if ($pdumpSingleEnabled): ?>
                                                 <button type="button" class="button button-primary acore-export-btn"
                                                     data-char-guid="<?= esc_attr($char['guid']) ?>"
@@ -553,7 +562,7 @@ class CharactersView {
 
             $(document).on('click', '.acore-export-all-btn', function() {
                 var chars = [];
-                $('.acore-export-btn').each(function() {
+                $('.acore-char-data').each(function() {
                     chars.push({
                         guid:    $(this).data('char-guid'),
                         name:    $(this).data('char-name'),

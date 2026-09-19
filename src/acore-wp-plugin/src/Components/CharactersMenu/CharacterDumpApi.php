@@ -19,20 +19,22 @@ add_action('rest_api_init', function () {
     ]);
 });
 
-/**
- * Get the client IP, respecting common reverse-proxy headers.
- */
-function pdumpGetClientIp(): string
+function pdumpGetAccountSecurity(int $accId): int
 {
-    foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'REMOTE_ADDR'] as $key) {
-        if (!empty($_SERVER[$key])) {
-            $ip = trim(explode(',', $_SERVER[$key])[0]);
-            if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                return $ip;
-            }
-        }
+    try {
+        $authConn = ACoreServices::I()->getAccountEm()->getConnection();
+        // Mirrors LOGIN_GET_GMLEVEL_BY_REALMID: realm-specific row takes priority
+        // over the catch-all (RealmID = -1) via ORDER BY RealmID DESC LIMIT 1.
+        $row = $authConn->executeQuery(
+            'SELECT `gmlevel` FROM `account_access`
+             WHERE `id` = ? AND (`RealmID` = -1 OR `RealmID` = (SELECT `id` FROM `realmlist` LIMIT 1))
+             ORDER BY `RealmID` DESC LIMIT 1',
+            [$accId]
+        )->fetchAssociative();
+        return $row !== false ? (int) $row['gmlevel'] : 0;
+    } catch (\Throwable $e) {
+        return 0;
     }
-    return '';
 }
 
 /**
@@ -81,7 +83,7 @@ function pdumpWriteLog(int $userId, int $accId, string $type, array $chars): voi
             'user_id'     => $userId,
             'account_id'  => $accId,
             'type'        => $type,
-            'ip'          => pdumpGetClientIp(),
+            'ip'          => \ACore\Hooks\User\acore_resolve_client_ip(),
             'exported_at' => current_time('mysql'),
             'characters'  => wp_json_encode($chars),
         ],
@@ -111,7 +113,7 @@ function pdumpFormatCooldown(int $seconds): string
  * Check whether the current account is eligible to use PDUMP at all.
  *
  * Enforces:
- *  - Server maintenance gate (realmlist.allowedSecurityLevel >= 1)
+ *  - Server maintenance gate (realmlist.allowedSecurityLevel > account.gmlevel)
  *  - Min account age since registration (when min-req enabled)
  *  - Min total playtime across all characters (when min-req enabled)
  *  - Min character level reached on any character (when min-req enabled)
@@ -124,40 +126,35 @@ function pdumpCheckEligibility(int $accId): ?string
     $opts = Opts::I();
 
     // ── Maintenance mode gate ───────────────────────────────────────────────
+    // Mirrors authserver: lock = (realm.AllowedSecurityLevel > account.gmlevel)
+    // so players below the threshold are blocked but GMs/admins are not.
+    $accountSecurity = null;
     if ($opts->acore_pdump_block_maintenance == '1') {
         try {
             $authConn = ACoreServices::I()->getAccountEm()->getConnection();
             $rlRow    = $authConn->executeQuery(
                 'SELECT `allowedSecurityLevel` FROM `realmlist` LIMIT 1'
             )->fetchAssociative();
-            if ($rlRow && (int) $rlRow['allowedSecurityLevel'] >= 1) {
-                return 'Character export is unavailable while the server is in maintenance mode (only accessible to GMs).';
+            if ($rlRow) {
+                $realmSecLevel   = (int) $rlRow['allowedSecurityLevel'];
+                $accountSecurity = pdumpGetAccountSecurity($accId);
+                if ($realmSecLevel > $accountSecurity) {
+                    return 'Character export is unavailable while the server is in maintenance mode.';
+                }
             }
         } catch (\Throwable $e) {
-            // Realmlist table unreachable — block as a safety measure
             return 'Could not verify server status. Please try again later.';
         }
     }
 
     // ── Player security level gate ──────────────────────────────────────────
-    // Mirrors realmlist.allowedSecurityLevel: block accounts whose security is
-    // below the threshold (they cannot log in during maintenance / GM-only mode).
     $allowedSecLevel = (int) $opts->acore_pdump_allowed_sec_level;
     if ($allowedSecLevel > 0) {
-        try {
-            $authConn = ACoreServices::I()->getAccountEm()->getConnection();
-            $secRow   = $authConn->executeQuery(
-                'SELECT `security` FROM `account` WHERE `id` = ? LIMIT 1',
-                [$accId]
-            )->fetchAssociative();
-            if ($secRow === false) {
-                return 'Account not found.';
-            }
-            if ((int) $secRow['security'] < $allowedSecLevel) {
-                return 'Character export is currently unavailable (server is in maintenance mode).';
-            }
-        } catch (\Throwable $e) {
-            return 'Could not verify account security level. Please try again later.';
+        if ($accountSecurity === null) {
+            $accountSecurity = pdumpGetAccountSecurity($accId);
+        }
+        if ($accountSecurity < $allowedSecLevel) {
+            return 'Character export is currently unavailable for your account.';
         }
     }
 
@@ -256,20 +253,36 @@ function pdumpResolveEffectiveCooldown(string $type, int $userId, int $accId): i
     $candidates = [];
 
     // ── Subscription overrides ──────────────────────────────────────────────
+    // Reads from acore_cms_subscriptions (auth DB). Raw levels 2/6/7 map to
+    // tiers 1/2/3 per GetConvertedMembershipLevel() in mod-acore-subscriptions.
     if ($opts->acore_pdump_subscription_enabled == '1') {
         $tiers = (array) $opts->acore_pdump_subscription_cooldowns;
-        if (!empty($tiers) && function_exists('pmpro_getMembershipLevelForUser')) {
-            $membership = pmpro_getMembershipLevelForUser($userId);
-            if ($membership && isset($membership->id)) {
-                $memberLevel = (int) $membership->id;
-                foreach ($tiers as $tier) {
-                    if ((int) ($tier['level'] ?? 0) === $memberLevel) {
-                        $candidates[] = !empty($tier['use_default'])
-                            ? $default
-                            : max(0, (int) ($tier[$type] ?? 0));
-                        break;
+        if (!empty($tiers)) {
+            try {
+                $authConn = ACoreServices::I()->getAccountEm()->getConnection();
+                $subRow   = $authConn->executeQuery(
+                    'SELECT `membership_level` FROM `acore_cms_subscriptions`
+                     WHERE `account_name` COLLATE utf8mb4_general_ci =
+                           (SELECT `username` FROM `account` WHERE `id` = ? LIMIT 1)',
+                    [$accId]
+                )->fetchAssociative();
+                if ($subRow) {
+                    $rawLevel   = (int) $subRow['membership_level'];
+                    $levelMap   = [2 => 1, 6 => 2, 7 => 3]; // ADMIRER→1, WATCHER→2, KEEPER→3
+                    $memberLevel = $levelMap[$rawLevel] ?? 0;
+                    if ($memberLevel > 0) {
+                        foreach ($tiers as $tier) {
+                            if ((int) ($tier['level'] ?? 0) === $memberLevel) {
+                                $candidates[] = !empty($tier['use_default'])
+                                    ? $default
+                                    : max(0, (int) ($tier[$type] ?? 0));
+                                break;
+                            }
+                        }
                     }
                 }
+            } catch (\Throwable $e) {
+                // Auth DB unavailable — skip subscription override
             }
         }
     }
@@ -278,17 +291,35 @@ function pdumpResolveEffectiveCooldown(string $type, int $userId, int $accId): i
     if ($opts->acore_pdump_rbac_enabled == '1') {
         $tiers = (array) $opts->acore_pdump_rbac_cooldowns;
         if (!empty($tiers)) {
+            // Default permission IDs: Player=195 (sec 0), Mod=194 (sec 1), GM=193 (sec 2), Admin=192 (sec 3)
+            $gmlevel = pdumpGetAccountSecurity($accId);
+            $permId  = 195 - $gmlevel;
+            foreach ($tiers as $tier) {
+                if ((int) ($tier['perm_id'] ?? 0) === $permId) {
+                    $candidates[] = !empty($tier['use_default'])
+                        ? $default
+                        : max(0, (int) ($tier[$type] ?? 0));
+                    break;
+                }
+            }
+        }
+    }
+
+    // ── Contributor overrides ────────────────────────────────────────────────
+    // Reads from mod_contributors_accounts (char DB) by AzerothCore account ID.
+    if ($opts->acore_pdump_contributor_enabled == '1') {
+        $tiers = (array) $opts->acore_pdump_contributor_cooldowns;
+        if (!empty($tiers)) {
             try {
-                $authConn = ACoreServices::I()->getAccountEm()->getConnection();
-                $secRow   = $authConn->executeQuery(
-                    'SELECT `security` FROM `account` WHERE `id` = ? LIMIT 1',
+                $charConn    = ACoreServices::I()->getCharacterEm()->getConnection();
+                $contribRow  = $charConn->executeQuery(
+                    'SELECT `Level` FROM `mod_contributors_accounts` WHERE `AccountId` = ? LIMIT 1',
                     [$accId]
                 )->fetchAssociative();
-                if ($secRow !== false) {
-                    // Default permission IDs: Player=195 (sec 0), Mod=194 (sec 1), GM=193 (sec 2), Admin=192 (sec 3)
-                    $permId = 195 - (int) $secRow['security'];
+                if ($contribRow) {
+                    $contribLevel = (int) $contribRow['Level'];
                     foreach ($tiers as $tier) {
-                        if ((int) ($tier['perm_id'] ?? 0) === $permId) {
+                        if ((int) ($tier['level'] ?? 0) === $contribLevel) {
                             $candidates[] = !empty($tier['use_default'])
                                 ? $default
                                 : max(0, (int) ($tier[$type] ?? 0));
@@ -297,25 +328,7 @@ function pdumpResolveEffectiveCooldown(string $type, int $userId, int $accId): i
                     }
                 }
             } catch (\Throwable $e) {
-                // Auth DB unavailable — skip RBAC override, fall through to default
-            }
-        }
-    }
-
-    // ── Contributor overrides ────────────────────────────────────────────────
-    if ($opts->acore_pdump_contributor_enabled == '1') {
-        $tiers = (array) $opts->acore_pdump_contributor_cooldowns;
-        if (!empty($tiers)) {
-            $contribLevel = (int) get_user_meta($userId, '_acore_contributor_level', true);
-            if ($contribLevel > 0) {
-                foreach ($tiers as $tier) {
-                    if ((int) ($tier['level'] ?? 0) === $contribLevel) {
-                        $candidates[] = !empty($tier['use_default'])
-                            ? $default
-                            : max(0, (int) ($tier[$type] ?? 0));
-                        break;
-                    }
-                }
+                // Char DB unavailable — skip contributor override
             }
         }
     }
@@ -390,6 +403,7 @@ function handlePdump(\WP_REST_Request $request): void
             exit;
         }
 
+        wp_cache_delete($userId, 'user_meta');
         $lastTime = (int) get_user_meta($userId, '_acore_pdump_last_single', true);
         $elapsed  = time() - $lastTime;
         if ($elapsed < $cooldown) {
@@ -513,6 +527,7 @@ function handlePdumpAll(\WP_REST_Request $request): void
             exit;
         }
 
+        wp_cache_delete($userId, 'user_meta');
         $lastTimeAll = (int) get_user_meta($userId, '_acore_pdump_last_all', true);
         $elapsedAll  = time() - $lastTimeAll;
         if ($elapsedAll < $cooldownAll) {
