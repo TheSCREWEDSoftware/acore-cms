@@ -753,12 +753,16 @@
         $('#acore-pdump-sub-list').append(acorePdumpMakeSubEntry(i));
     });
     $('#acore-pdump-sub-list').on('click', '.acore-pdump-sub-remove', function() {
-        $(this).closest('.acore-pdump-sub-entry').remove();
-        acorePdumpSubReindex();
+        var $entry = $(this).closest('.acore-pdump-sub-entry');
+        acoreConfirm('Remove this subscription override?', function() {
+            $entry.remove();
+            acorePdumpSubReindex();
+        });
     });
     $('#acore-pdump-sub-reset').on('click', function() {
-        if (!confirm('Remove all subscription cooldown overrides?')) return;
-        $('#acore-pdump-sub-list').empty();
+        acoreConfirm('Remove all subscription cooldown overrides?', function() {
+            $('#acore-pdump-sub-list').empty();
+        });
     });
 
     $('#acore-pdump-rbac-add').on('click', function() {
@@ -766,20 +770,24 @@
         $('#acore-pdump-rbac-list').append(acorePdumpMakeRbacEntry(i));
     });
     $('#acore-pdump-rbac-list').on('click', '.acore-pdump-rbac-remove', function() {
-        $(this).closest('.acore-pdump-rbac-entry').remove();
-        acorePdumpRbacReindex();
+        var $entry = $(this).closest('.acore-pdump-rbac-entry');
+        acoreConfirm('Remove this RBAC override?', function() {
+            $entry.remove();
+            acorePdumpRbacReindex();
+        });
     });
     $('#acore-pdump-rbac-reset').on('click', function() {
-        if (!confirm('Reset RBAC overrides to defaults?')) return;
-        var rbacDefaults = [
-            { perm_id: 195, perm_name: 'Player' },
-            { perm_id: 194, perm_name: 'Moderator' },
-            { perm_id: 193, perm_name: 'Gamemaster' },
-            { perm_id: 192, perm_name: 'Administrator' },
-        ];
-        $('#acore-pdump-rbac-list').empty();
-        $.each(rbacDefaults, function(i, d) {
-            $('#acore-pdump-rbac-list').append(acorePdumpMakeRbacEntry(i, d));
+        acoreConfirm('Reset RBAC overrides to defaults?', function() {
+            var rbacDefaults = [
+                { perm_id: 195, perm_name: 'Player' },
+                { perm_id: 194, perm_name: 'Moderator' },
+                { perm_id: 193, perm_name: 'Gamemaster' },
+                { perm_id: 192, perm_name: 'Administrator' },
+            ];
+            $('#acore-pdump-rbac-list').empty();
+            $.each(rbacDefaults, function(i, d) {
+                $('#acore-pdump-rbac-list').append(acorePdumpMakeRbacEntry(i, d));
+            });
         });
     });
 
@@ -818,20 +826,24 @@
         $('#acore-pdump-contrib-list').append(acorePdumpMakeContribEntry(i));
     });
     $('#acore-pdump-contrib-list').on('click', '.acore-pdump-contrib-remove', function() {
-        $(this).closest('.acore-pdump-contrib-entry').remove();
-        acorePdumpContribReindex();
+        var $entry = $(this).closest('.acore-pdump-contrib-entry');
+        acoreConfirm('Remove this contributor override?', function() {
+            $entry.remove();
+            acorePdumpContribReindex();
+        });
     });
     $('#acore-pdump-contrib-reset').on('click', function() {
-        if (!confirm('Reset contributor overrides to defaults?')) return;
-        var contribDefaults = [
-            { level: 1, name: 'Bronze' },
-            { level: 2, name: 'Silver' },
-            { level: 3, name: 'Gold' },
-            { level: 4, name: 'Platinum' },
-        ];
-        $('#acore-pdump-contrib-list').empty();
-        $.each(contribDefaults, function(i, d) {
-            $('#acore-pdump-contrib-list').append(acorePdumpMakeContribEntry(i, d));
+        acoreConfirm('Reset contributor overrides to defaults?', function() {
+            var contribDefaults = [
+                { level: 1, name: 'Bronze' },
+                { level: 2, name: 'Silver' },
+                { level: 3, name: 'Gold' },
+                { level: 4, name: 'Platinum' },
+            ];
+            $('#acore-pdump-contrib-list').empty();
+            $.each(contribDefaults, function(i, d) {
+                $('#acore-pdump-contrib-list').append(acorePdumpMakeContribEntry(i, d));
+            });
         });
     });
 
