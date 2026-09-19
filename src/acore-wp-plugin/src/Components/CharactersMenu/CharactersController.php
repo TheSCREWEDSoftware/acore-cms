@@ -92,16 +92,113 @@ class CharactersController {
             // non-fatal
         }
 
-        $punishmentEnabled = Opts::I()->acore_punishment_info_enabled == '1';
+        // ── PDUMP eligibility ───────────────────────────────────────────────
+        $opts           = Opts::I();
+        $pdumpGlobal    = $opts->acore_pdump_enabled == '1';
+        $pdumpSingleOn  = $pdumpGlobal && $opts->acore_pdump_single_enabled == '1';
+        $pdumpAllOn     = $pdumpGlobal && $opts->acore_pdump_all_enabled    == '1';
+
+        if ($pdumpSingleOn || $pdumpAllOn) {
+            $pdumpEligible = true;
+
+            // Maintenance mode: block if server allowedSecurityLevel >= 1
+            if ($pdumpEligible && $opts->acore_pdump_block_maintenance == '1') {
+                try {
+                    $rlRow = $authConn->executeQuery(
+                        'SELECT `allowedSecurityLevel` FROM `realmlist` LIMIT 1'
+                    )->fetchAssociative();
+                    if ($rlRow && (int) $rlRow['allowedSecurityLevel'] >= 1) {
+                        $pdumpEligible = false;
+                    }
+                } catch (\Throwable $e) {
+                    $pdumpEligible = false;
+                }
+            }
+
+            // Security level gate: block if account.security < allowedSecLevel
+            $allowedSecLevel = (int) $opts->acore_pdump_allowed_sec_level;
+            if ($pdumpEligible && $allowedSecLevel > 0) {
+                try {
+                    $secRow = $authConn->executeQuery(
+                        'SELECT `security` FROM `account` WHERE `id` = ? LIMIT 1',
+                        [$accId]
+                    )->fetchAssociative();
+                    if (!$secRow || (int) $secRow['security'] < $allowedSecLevel) {
+                        $pdumpEligible = false;
+                    }
+                } catch (\Throwable $e) {
+                    $pdumpEligible = false;
+                }
+            }
+
+            // Min requirements
+            if ($pdumpEligible && $opts->acore_pdump_min_req_enabled == '1') {
+                // Min account age
+                if ($opts->acore_pdump_min_acct_age_enabled == '1') {
+                    $minAcctAge = (int) $opts->acore_pdump_min_acct_age;
+                    if ($minAcctAge > 0) {
+                        try {
+                            $ageRow = $authConn->executeQuery(
+                                'SELECT UNIX_TIMESTAMP(`joindate`) AS joindate_ts FROM `account` WHERE `id` = ? LIMIT 1',
+                                [$accId]
+                            )->fetchAssociative();
+                            if ($ageRow && (time() - (int) $ageRow['joindate_ts']) < $minAcctAge) {
+                                $pdumpEligible = false;
+                            }
+                        } catch (\Throwable $e) {
+                            $pdumpEligible = false;
+                        }
+                    }
+                }
+
+                // Min playtime + min character level
+                if ($pdumpEligible) {
+                    $minPlaytime  = $opts->acore_pdump_min_playtime_enabled  == '1' ? (int) $opts->acore_pdump_min_playtime  : 0;
+                    $minCharLevel = $opts->acore_pdump_min_char_level_enabled == '1' ? (int) $opts->acore_pdump_min_char_level : 0;
+                    if ($minPlaytime > 0 || $minCharLevel > 0) {
+                        try {
+                            $charConn2 = ACoreServices::I()->getCharacterEm()->getConnection();
+                            if ($minPlaytime > 0) {
+                                $ptRow2 = $charConn2->executeQuery(
+                                    'SELECT COALESCE(SUM(`totaltime`),0) AS t FROM `characters` WHERE `account`=? AND `deleteDate` IS NULL',
+                                    [$accId]
+                                )->fetchAssociative();
+                                if (!$ptRow2 || (int) $ptRow2['t'] < $minPlaytime) {
+                                    $pdumpEligible = false;
+                                }
+                            }
+                            if ($pdumpEligible && $minCharLevel > 0) {
+                                $lvRow2 = $charConn2->executeQuery(
+                                    'SELECT MAX(`level`) AS m FROM `characters` WHERE `account`=? AND `deleteDate` IS NULL',
+                                    [$accId]
+                                )->fetchAssociative();
+                                if (!$lvRow2 || (int) $lvRow2['m'] < $minCharLevel) {
+                                    $pdumpEligible = false;
+                                }
+                            }
+                        } catch (\Throwable $e) {
+                            $pdumpEligible = false;
+                        }
+                    }
+                }
+            }
+
+            if (!$pdumpEligible) {
+                $pdumpSingleOn = false;
+                $pdumpAllOn    = false;
+            }
+        }
+
+        $punishmentEnabled = $opts->acore_punishment_info_enabled == '1';
         echo $this->getView()->getHomeRender(
             $chars, $mutetime, $accBanRow,
             $serverRevision, $serverRevisionUrl,
-            Opts::I()->acore_bug_report_url ?: '',
-            Opts::I()->acore_pdump_enabled == '1' && Opts::I()->acore_pdump_single_enabled == '1',
-            Opts::I()->acore_pdump_enabled == '1' && Opts::I()->acore_pdump_all_enabled    == '1',
-            $punishmentEnabled && Opts::I()->acore_punishment_info_account_ban  == '1',
-            $punishmentEnabled && Opts::I()->acore_punishment_info_account_mute == '1',
-            $punishmentEnabled && Opts::I()->acore_punishment_info_character_ban == '1'
+            $opts->acore_bug_report_url ?: '',
+            $pdumpSingleOn,
+            $pdumpAllOn,
+            $punishmentEnabled && $opts->acore_punishment_info_account_ban  == '1',
+            $punishmentEnabled && $opts->acore_punishment_info_account_mute == '1',
+            $punishmentEnabled && $opts->acore_punishment_info_character_ban == '1'
         );
     }
 
